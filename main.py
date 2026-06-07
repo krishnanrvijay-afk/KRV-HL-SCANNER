@@ -1,6 +1,7 @@
 import asyncio
 import csv
 import io
+import json
 import logging
 import os
 import time
@@ -32,6 +33,7 @@ from config import (
     PAIRS, SCAN_INTERVAL_SECONDS, PRICE_INTERVAL_SECONDS,
     MARGIN_PER_TRADE, MARGIN_HARD_CAP, PAPER_MODE,
     CONSECUTIVE_LOSS_STOP, DAILY_LOSS_LIMIT, TP1_R, TP2_R,
+    DATA_DIR, STATE_FILE, TRADE_LOG_FILE,
 )
 from hl_client import HLClient
 from mexc_client import MexcClient
@@ -40,6 +42,9 @@ from scanner import (
     get_scan_count, set_close_cooldown, clear_cooldown,
     get_cooldown_remaining, clear_all_scanner_state, log_startup_config,
 )
+import scanner as _scanner_mod  # direct access to _cooldowns dict for persistence
+
+os.makedirs(DATA_DIR, exist_ok=True)  # ensure data dir exists at import time
 
 # ── Global safety state ────────────────────────────────────────────────────────
 consecutive_losses:     int   = 0
@@ -179,12 +184,127 @@ def _retire_alert(symbol: str, direction: str):
     ]
 
 
+# ── Persistence ────────────────────────────────────────────────────────────────
+
+def _save_state():
+    """Atomically write full app state to STATE_FILE."""
+    try:
+        data = {
+            "saved_date":             datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "open_trades":            app_state.open_trades,
+            "margin_deployed":        app_state.margin_deployed,
+            "daily_pnl":              daily_pnl,
+            "trading_halted_today":   trading_halted_today,
+            "consecutive_losses":     consecutive_losses,
+            "circuit_breaker_active": circuit_breaker_active,
+            "cooldowns":              dict(_scanner_mod._cooldowns),  # expiry timestamps
+        }
+        tmp = STATE_FILE + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump(data, f, indent=2)
+        os.replace(tmp, STATE_FILE)
+    except Exception as _e:
+        print(f"[PERSIST] save error: {_e}")
+
+
+def _load_state():
+    """On startup: restore trades, cooldowns, daily P&L and trade-log CSV."""
+    global daily_pnl, trading_halted_today, consecutive_losses, circuit_breaker_active
+
+    # ── Trade log CSV → in-memory list ────────────────────────────────────────
+    if os.path.exists(TRADE_LOG_FILE):
+        try:
+            with open(TRADE_LOG_FILE, newline="") as f:
+                for row in csv.DictReader(f):
+                    def _f(k):
+                        v = row.get(k)
+                        return float(v) if v not in (None, "") else None
+                    app_state.trade_log.append({
+                        "timestamp_opened": int(float(row.get("open_time", 0) or 0)),
+                        "timestamp_closed": int(float(row.get("close_time", 0) or 0)),
+                        "symbol":           row.get("pair", ""),
+                        "direction":        row.get("direction", ""),
+                        "tier":             row.get("tier"),
+                        "adx1h":            None,
+                        "score":            None,
+                        "entry_price":      _f("entry_price"),
+                        "sl_price":         _f("sl"),
+                        "tp1_price":        _f("tp1"),
+                        "tp2_price":        _f("tp2"),
+                        "exit_price":       _f("exit_price"),
+                        "exit_reason":      row.get("exit_reason", ""),
+                        "pnl_usd":          float(row.get("pnl_dollars") or 0),
+                        "r_value":          float(row.get("r_value") or 0),
+                        "duration_seconds": int(float(row.get("duration_seconds", 0) or 0)),
+                        "exchange":         row.get("exchange", "HL"),
+                        "paper":            True,
+                    })
+            print(f"[RESTORE] trade log: {len(app_state.trade_log)} entries from CSV")
+        except Exception as _e:
+            print(f"[RESTORE] CSV read error: {_e}")
+
+    # ── App state JSON ─────────────────────────────────────────────────────────
+    if not os.path.exists(STATE_FILE):
+        print("[RESTORE] no state file — starting fresh")
+        return
+
+    try:
+        with open(STATE_FILE) as f:
+            data = json.load(f)
+    except Exception as _e:
+        print(f"[RESTORE] state file corrupt: {_e}")
+        return
+
+    # ── New-day check: reset if calendar day changed ───────────────────────────
+    saved_date = data.get("saved_date", "")
+    today_str  = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if saved_date != today_str:
+        print(f"[DAILY RESET] New trading day ({saved_date} → {today_str}) — P&L reset to $0")
+        daily_pnl             = 0.0
+        trading_halted_today  = False
+        consecutive_losses    = 0
+        circuit_breaker_active = False
+        _save_state()
+        return
+
+    # ── Restore globals ────────────────────────────────────────────────────────
+    daily_pnl              = float(data.get("daily_pnl", 0.0))
+    trading_halted_today   = bool(data.get("trading_halted_today", False))
+    consecutive_losses     = int(data.get("consecutive_losses", 0))
+    circuit_breaker_active = bool(data.get("circuit_breaker_active", False))
+    app_state.margin_deployed = float(data.get("margin_deployed", 0.0))
+
+    # ── Restore open trades ────────────────────────────────────────────────────
+    for key, trade in data.get("open_trades", {}).items():
+        app_state.open_trades[key] = trade
+        print(f"[RESTORE] {trade.get('symbol')} {trade.get('direction')} "
+              f"entry={trade.get('entry_price')} sl={trade.get('sl_price')} "
+              f"tp1={trade.get('tp1_price')} restored from disk")
+
+    # ── Restore cooldowns (drop expired ones) ──────────────────────────────────
+    now = time.time()
+    dropped = 0
+    for key, expiry in data.get("cooldowns", {}).items():
+        if expiry > now:
+            _scanner_mod._cooldowns[key] = expiry
+        else:
+            dropped += 1
+            print(f"[RESTORE] cooldown {key} expired ({int(now - expiry)}s ago) — dropped")
+    if dropped:
+        print(f"[RESTORE] {dropped} expired cooldown(s) dropped")
+
+    print(f"[RESTORE] complete — trades={len(app_state.open_trades)} "
+          f"daily_pnl=${daily_pnl:.2f} cooldowns={len(_scanner_mod._cooldowns)} "
+          f"cb={consecutive_losses}/{CONSECUTIVE_LOSS_STOP}")
+
+
 def _update_daily_pnl(pnl: float):
     global daily_pnl, trading_halted_today
     daily_pnl = round(daily_pnl + pnl, 2)
     if not trading_halted_today and daily_pnl <= DAILY_LOSS_LIMIT:
         trading_halted_today = True
         print(f"[DAILY LIMIT] daily_pnl=${daily_pnl:.2f} — trading halted")
+    _save_state()
 
 
 def _on_trade_close(reason: str):
@@ -197,12 +317,23 @@ def _on_trade_close(reason: str):
             print("[CIRCUIT BREAKER] ACTIVE — auto-entry paused")
     else:
         consecutive_losses = 0
+    _save_state()
+
+
+_CSV_COLUMNS = [
+    "pair", "direction", "tier", "leverage", "exchange",
+    "entry_price", "exit_price", "sl", "tp1", "tp2",
+    "exit_reason", "pnl_dollars", "r_value",
+    "open_time", "close_time", "duration_seconds",
+]
 
 
 def _append_trade_log(trade: dict, exit_price: float, reason: str, pnl: float, r: float):
-    app_state.trade_log.append({
-        "timestamp_opened": trade.get("opened_at", 0),
-        "timestamp_closed": int(time.time()),
+    now_ts    = int(time.time())
+    opened_at = trade.get("opened_at", now_ts)
+    entry = {
+        "timestamp_opened": opened_at,
+        "timestamp_closed": now_ts,
         "symbol":           trade["symbol"],
         "direction":        trade["direction"],
         "score":            trade.get("score"),
@@ -216,10 +347,39 @@ def _append_trade_log(trade: dict, exit_price: float, reason: str, pnl: float, r
         "exit_reason":      reason,
         "pnl_usd":          round(pnl, 2),
         "r_value":          r,
-        "duration_seconds": int(time.time()) - trade.get("opened_at", int(time.time())),
+        "duration_seconds": now_ts - opened_at,
         "exchange":         trade.get("exchange", "HL"),
         "paper":            trade.get("paper", True),
-    })
+    }
+    app_state.trade_log.append(entry)
+
+    # Persist row to CSV (append-only, atomic enough for append)
+    try:
+        file_exists = os.path.exists(TRADE_LOG_FILE)
+        with open(TRADE_LOG_FILE, "a", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=_CSV_COLUMNS)
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow({
+                "pair":             trade["symbol"],
+                "direction":        trade["direction"],
+                "tier":             trade.get("tier", ""),
+                "leverage":         trade.get("leverage", ""),
+                "exchange":         trade.get("exchange", "HL"),
+                "entry_price":      trade.get("entry_price", ""),
+                "exit_price":       exit_price,
+                "sl":               trade.get("sl_price", ""),
+                "tp1":              trade.get("tp1_price", ""),
+                "tp2":              trade.get("tp2_price", ""),
+                "exit_reason":      reason,
+                "pnl_dollars":      round(pnl, 2),
+                "r_value":          r,
+                "open_time":        opened_at,
+                "close_time":       now_ts,
+                "duration_seconds": now_ts - opened_at,
+            })
+    except Exception as _e:
+        print(f"[PERSIST] CSV write error: {_e}")
 
 
 async def _do_open_trade(
@@ -292,6 +452,7 @@ async def _do_open_trade(
     print(f"[TRADE OPEN] {symbol} {direction} tier={trade.get('tier')} "
           f"entry={entry} sl={trade.get('sl_price')} tp1={trade.get('tp1_price')} "
           f"lev={leverage}x exchange={exchange}")
+    _save_state()
     return trade, None
 
 
@@ -310,6 +471,7 @@ async def _scan_loop():
                 # Issue 2 fix: set cooldown immediately when alert fires so scanner
                 # stops re-confirming the same signal on subsequent scans
                 set_close_cooldown(sym, dir_)
+                _save_state()
 
                 # Update alerts panel
                 existing = next(
@@ -406,6 +568,7 @@ def _do_close_trade(key: str, trade: dict, exit_price: float, reason: str):
 
     print(f"[EXIT] {sym} {direction} closed at {exit_price} reason={reason} "
           f"pnl=${pnl:.2f} r={r:+.2f}R")
+    _save_state()
 
 
 def _do_partial_close_tp1(key: str, trade: dict, exit_price: float):
@@ -433,6 +596,7 @@ def _do_partial_close_tp1(key: str, trade: dict, exit_price: float):
 
     print(f"[EXIT] {sym} {direction} TP1 partial close at {exit_price} "
           f"half_pnl=${pnl:.2f} r={r:+.2f}R — remainder open watching TP2")
+    _save_state()
 
 
 # ── Exit monitor loop ──────────────────────────────────────────────────────────
@@ -514,6 +678,7 @@ async def lifespan(app: FastAPI):
     hl_client   = HLClient()
     mexc_client = MexcClient()
     log_startup_config()
+    _load_state()
     scan_task  = asyncio.create_task(_scan_loop())
     price_task = asyncio.create_task(_price_loop())
     exit_task  = asyncio.create_task(_exit_monitor_loop())
@@ -633,6 +798,7 @@ async def close_trade(req: CloseTradeRequest):
     _retire_alert(req.symbol, req.direction)
     set_close_cooldown(req.symbol, req.direction)
 
+    _save_state()
     print(f"[TRADE CLOSE] {req.symbol} {req.direction} MANUAL pnl=${pnl:.2f} r={r:+.2f}")
     return {"status": "ok", "closed": closed}
 
