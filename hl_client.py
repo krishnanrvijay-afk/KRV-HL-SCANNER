@@ -130,6 +130,29 @@ class HLClient:
             print(f"[HLClient] get_orderbook({symbol}) error: {e}")
             return {"bids": [], "asks": []}
 
+    async def get_all_price_changes(self, symbols: list[str]) -> dict[str, float]:
+        """Returns dict of symbol → 24h pct change, computed from prevDayPx vs markPx."""
+        try:
+            data = await self._post({"type": "metaAndAssetCtxs"})
+            meta       = data[0]
+            asset_ctxs = data[1]
+            universe   = meta.get("universe", [])
+            sym_set    = set(symbols)
+            result: dict[str, float] = {}
+            for i, asset in enumerate(universe):
+                name = asset.get("name")
+                if name not in sym_set or i >= len(asset_ctxs):
+                    continue
+                ctx  = asset_ctxs[i]
+                prev = float(ctx.get("prevDayPx") or 0)
+                mark = float(ctx.get("markPx")    or 0)
+                if prev > 0 and mark > 0:
+                    result[name] = round((mark - prev) / prev * 100, 2)
+            return result
+        except Exception as e:
+            print(f"[HLClient] get_all_price_changes error: {e}")
+            return {}
+
     async def get_funding_rate(self, symbol: str) -> Optional[float]:
         try:
             data = await self._post({"type": "metaAndAssetCtxs"})
