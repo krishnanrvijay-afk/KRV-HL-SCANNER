@@ -7,20 +7,17 @@ from config import (
     PAIRS, J15M_SHORT_GATE, J15M_LONG_GATE, J1H_SHORT_MIN, J1H_LONG_MAX,
     RSI15M_SHORT_MIN, RSI15M_LONG_MAX, DEPTH_GATE_PCT, ATR_SL_MULTIPLIER,
     TP1_R, TP2_R, LEVERAGE_HIGH, LEVERAGE_MID, LEVERAGE_LOW,
-    COOLDOWN_SECONDS, BTC_REGIME_FILTER_ENABLED, PAPER_MODE,
-    CONSECUTIVE_LOSS_STOP,
+    COOLDOWN_SECONDS, ADX_FADE_MAX, PAPER_MODE, CONSECUTIVE_LOSS_STOP,
 )
 
 log = logging.getLogger("scanner")
 
 # ── Module-level state ────────────────────────────────────────────────────────
 
-_last_scores:     dict[str, int]   = {}   # keyed "BTCSHORT" / "BTCLONG"
-_cooldowns:       dict[str, float] = {}   # keyed "BTCSHORT" / "BTCLONG" → expiry ts
-_btc_regime:      str              = "Neutral"  # from PREVIOUS completed scan cycle
-_btc_regime_next: str              = "Neutral"  # staged from current scan cycle
-_scan_count:      int              = 0
-_pending:         dict[str, dict]  = {}   # first-scan confirmed, awaiting 2nd
+_last_scores: dict[str, int]   = {}   # keyed "BTCSHORT" / "BTCLONG"
+_cooldowns:   dict[str, float] = {}   # keyed "BTCSHORT" / "BTCLONG" → expiry ts
+_scan_count:  int              = 0
+_pending:     dict[str, dict]  = {}   # first-scan confirmed, awaiting 2nd
 
 
 # ── Indicator helpers ─────────────────────────────────────────────────────────
@@ -192,33 +189,25 @@ def get_pending() -> dict:
     return dict(_pending)
 
 
-def get_btc_regime() -> str:
-    return _btc_regime
-
-
 def get_scan_count() -> int:
     return _scan_count
 
 
 def clear_all_scanner_state():
-    global _scan_count, _btc_regime, _btc_regime_next
+    global _scan_count
     _last_scores.clear()
     _cooldowns.clear()
     _pending.clear()
-    _scan_count       = 0
-    _btc_regime       = "Neutral"
-    _btc_regime_next  = "Neutral"
+    _scan_count = 0
 
 
 # ── Main scan ─────────────────────────────────────────────────────────────────
 
 async def run_full_scan(hl_client) -> list[dict]:
-    global _btc_regime, _btc_regime_next, _scan_count
+    global _scan_count
 
     _scan_count += 1
     new_alerts: list[dict] = []
-    blocked_shorts = 0
-    allowed_longs  = 0
 
     for symbol in PAIRS:
         try:
@@ -248,12 +237,6 @@ async def run_full_scan(hl_client) -> list[dict]:
             vol_15m    = candles_15m[-1]["volume"] if candles_15m else 0
             vol_ma15m  = (sum(c["volume"] for c in candles_15m[-10:]) / min(10, len(candles_15m))
                           if candles_15m else 0)
-
-            # ── BTC regime — stage for NEXT scan cycle (avoid circular dependency) ──
-            if symbol == "BTC":
-                _btc_regime_next = trend
-                log.info(f"[REGIME] current={_btc_regime} (from prev scan) next={_btc_regime_next} "
-                         f"blocked_shorts={blocked_shorts} allowed_longs={allowed_longs}")
 
             # ── SL distance ───────────────────────────────────────────────────
             sl_dist = atr15m * ATR_SL_MULTIPLIER
@@ -297,26 +280,12 @@ async def run_full_scan(hl_client) -> list[dict]:
                     log.info(f"[SCORE] {symbol} {direction} first-scan confirmed — awaiting 2nd")
                     continue
 
-                # Second consecutive scan — emit alert
+                # Second consecutive scan — check ADX fade-max before emitting alert
                 _last_scores[key] = 4
 
-                # BTC regime filter — BTC itself is exempt (self-referential pair)
-                if BTC_REGIME_FILTER_ENABLED:
-                    if symbol == "BTC":
-                        log.info(f"[REGIME EXEMPT] BTC {direction} exempt from regime filter — self-referential pair")
-                    elif _btc_regime == "Strong Bull" and direction == "SHORT":
-                        log.info(f"[REGIME BLOCK] {symbol} SHORT blocked — BTC regime is Strong Bull")
-                        blocked_shorts += 1
-                        continue
-                    elif _btc_regime == "Strong Bear" and direction == "LONG":
-                        log.info(f"[REGIME BLOCK] {symbol} LONG blocked — BTC regime is Strong Bear")
-                        continue
-                    elif _btc_regime == "Neutral":
-                        log.info(f"[REGIME BLOCK] {symbol} {direction} blocked — BTC regime is Neutral")
-                        continue
-
-                if direction == "LONG":
-                    allowed_longs += 1
+                if adx1h > ADX_FADE_MAX:
+                    log.info(f"[SKIP] {symbol} {direction} adx={adx1h:.1f} exceeds fade max {ADX_FADE_MAX} — trend too strong to fade")
+                    continue
 
                 # Compute SL / TP prices
                 if direction == "SHORT":
@@ -363,14 +332,12 @@ async def run_full_scan(hl_client) -> list[dict]:
                 new_alerts.append(alert)
                 _pending.pop(key, None)
                 log.info(f"[ALERT] {symbol} {direction} tier={tier} lev={lev}x entry={price} "
-                         f"sl={sl_price} tp1={tp1_price} tp2={tp2_price}")
+                         f"sl={sl_price} tp1={tp1_price} adx={adx1h:.1f}")
 
         except Exception as e:
             log.error(f"[SCAN] {symbol} error: {e}", exc_info=True)
 
-    # Commit staged BTC regime — now safe to use on the NEXT scan cycle
-    _btc_regime = _btc_regime_next
-    log.info(f"[SCAN] #{_scan_count} complete — {len(new_alerts)} new alerts — regime committed: {_btc_regime}")
+    log.info(f"[SCAN] #{_scan_count} complete — {len(new_alerts)} new alerts")
     return new_alerts
 
 
@@ -448,6 +415,7 @@ def log_startup_config():
         f"J1H_SHORT_MIN={J1H_SHORT_MIN} J1H_LONG_MAX={J1H_LONG_MAX} "
         f"RSI_SHORT={RSI15M_SHORT_MIN} RSI_LONG={RSI15M_LONG_MAX} "
         f"DEPTH={DEPTH_GATE_PCT}% ATR_SL={ATR_SL_MULTIPLIER}x "
+        f"ADX_FADE_MAX={ADX_FADE_MAX} "
         f"COOLDOWN={COOLDOWN_SECONDS//60}min "
         f"CIRCUIT_BREAKER={CONSECUTIVE_LOSS_STOP} PAPER={PAPER_MODE}"
     )
