@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>BOUNCE SCANNER II</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;700&family=Inter:wght@300;400;600;800&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #080808; color: #fff; font-family: 'Inter', sans-serif; font-size: 13px; overflow-x: hidden; }
+  body { background: #080808; color: #fff; font-family: 'Inter', sans-serif; font-size: 13px; overflow-x: hidden; padding-bottom: 72px; }
 
   /* ── HEADER ── */
   .header { display: flex; align-items: center; justify-content: space-between; padding: 0 24px; height: 52px; border-bottom: 1px solid #1a1a1a; background: #0a0a0a; position: sticky; top: 0; z-index: 200; }
@@ -15,12 +15,12 @@
   .logo span { color: #00ff88; }
   .header-right { display: flex; align-items: center; gap: 14px; }
   .hstat { display: flex; flex-direction: column; align-items: flex-end; }
-  .hstat-label { font-size: 8px; font-weight: 700; color: #555; letter-spacing: 1px; text-transform: uppercase; }
+  .hstat-label { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 1px; text-transform: uppercase; }
   .hstat-value { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; }
   .sep { width: 1px; height: 28px; background: #1a1a1a; }
   .paper-badge { background: rgba(100,160,255,0.1); color: #66aaff; border: 1px solid rgba(100,160,255,0.25); font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: 1px; }
 
-  /* Market popover button */
+  /* Market popover */
   .mkt-btn-wrap { position: relative; }
   .mkt-btn { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; padding: 4px 11px; border-radius: 4px; cursor: pointer; letter-spacing: 1px; background: #111; color: #aaa; border: 1px solid #2a2a2a; transition: all 0.15s; user-select: none; }
   .mkt-btn:hover, .mkt-btn.open { background: rgba(255,255,255,0.08); color: #fff; border-color: #444; }
@@ -28,7 +28,7 @@
   .mkt-popover.open { display: block; }
   .mkt-title { font-family: 'Bebas Neue', sans-serif; font-size: 11px; letter-spacing: 2px; color: #555; margin-bottom: 8px; }
   .mkt-row { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 7px; }
-  .mkt-label { font-size: 8px; font-weight: 700; color: #555; letter-spacing: 0.5px; white-space: nowrap; padding-top: 2px; }
+  .mkt-label { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 0.5px; white-space: nowrap; padding-top: 2px; }
   .mkt-chips { display: flex; gap: 3px; flex-wrap: wrap; justify-content: flex-end; }
   .mkt-chip { font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 9px; padding: 1px 5px; border-radius: 3px; background: #111; border: 1px solid #1a1a1a; }
 
@@ -41,38 +41,50 @@
   .fp.tab-pos.active    { background: #66aaff; color: #000; border-color: #66aaff; }
   .fp.tab-log.active    { background: #ffaa00; color: #000; border-color: #ffaa00; }
   .fp-count { display: inline-block; background: rgba(255,255,255,0.15); border-radius: 8px; padding: 0 5px; margin-left: 3px; font-size: 8px; }
-  .scan-status { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #555; }
-  .scan-status span { color: #00ff88; }
+  .scan-status { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #555; white-space: nowrap; }
+  .scan-status .ts  { color: #00ff88; }
+  .scan-status .cd  { color: #ffaa00; }
 
-  /* ── PAIR GRID (4-col, full width) ── */
+  /* ── PAIR GRID ── */
   .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #111; }
   @media (max-width: 1100px) { .card-grid { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 800px)  { .card-grid { grid-template-columns: repeat(2, 1fr); } }
 
-  .pair-card { background: #0a0a0a; padding: 14px 16px; cursor: default; transition: background 0.1s; position: relative; }
+  .pair-card { background: #0a0a0a; padding: 14px 16px; cursor: default; transition: background 0.1s; }
   .pair-card:hover { background: #0e0e0e; }
 
   /* Card header */
   .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
   .card-sym { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; line-height: 1; }
-  .card-price-block { text-align: right; }
+  .card-right { text-align: right; }
+  .card-price-line { display: flex; align-items: baseline; gap: 5px; justify-content: flex-end; }
   .card-price { font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; color: #aaa; }
-  .card-adx   { font-family: 'JetBrains Mono', monospace; font-size: 8px; color: #555; margin-top: 2px; }
+  .card-chg   { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; }
+  .card-adx-block { margin-top: 4px; display: flex; align-items: baseline; gap: 4px; justify-content: flex-end; }
+  .card-adx-label { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 1px; text-transform: uppercase; }
+  .card-adx-val   { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; line-height: 1; }
 
-  /* Direction row */
-  .dir-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 4px; margin-bottom: 4px; }
+  /* Direction rows */
+  .dir-row { display: flex; align-items: center; gap: 6px; padding: 5px 7px; border-radius: 4px; margin-bottom: 4px; }
   .dir-row.long-row  { background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.12); }
   .dir-row.short-row { background: rgba(255,68,68,0.05);  border: 1px solid rgba(255,68,68,0.12); }
   .dir-arrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; flex-shrink: 0; width: 14px; }
   .arrow-long  { color: #00ff88; }
   .arrow-short { color: #ff4444; }
-  .dir-vals { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-  .dv-item { display: flex; flex-direction: column; align-items: center; min-width: 30px; }
-  .dv-label { font-size: 6px; font-weight: 700; color: #555; letter-spacing: 0.5px; text-transform: uppercase; }
+
+  /* Gate dot cluster */
+  .gate-cluster { display: flex; gap: 3px; align-items: center; flex-shrink: 0; }
+  .gc-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .gc-dot.long-pass  { background: #00ff88; box-shadow: 0 0 5px rgba(0,255,136,0.65); }
+  .gc-dot.long-fail  { background: #0e2016; }
+  .gc-dot.short-pass { background: #ff4444; box-shadow: 0 0 5px rgba(255,68,68,0.65); }
+  .gc-dot.short-fail { background: #200e0e; }
+
+  /* Direction values */
+  .dir-vals { display: flex; gap: 7px; flex-wrap: wrap; align-items: center; }
+  .dv-item { display: flex; flex-direction: column; align-items: center; min-width: 28px; }
+  .dv-label { font-size: 6px; font-weight: 800; color: #fff; letter-spacing: 0.5px; text-transform: uppercase; }
   .dv-val   { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; }
-  .gate-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; margin-right: 2px; vertical-align: middle; }
-  .gate-dot.pass { background: #00ff88; box-shadow: 0 0 3px rgba(0,255,136,0.6); }
-  .gate-dot.fail { background: #2a2a2a; }
 
   /* Card footer pills */
   .card-footer { display: flex; gap: 5px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
@@ -103,10 +115,10 @@
   .tp-regular { background: #111; color: #888; border: 1px solid #2a2a2a; }
   .ac-prices { display: grid; grid-template-columns: repeat(3,1fr); gap: 5px; margin-bottom: 7px; }
   .ac-px { background: #111; border-radius: 3px; padding: 5px 7px; }
-  .ac-px-label { font-size: 7px; font-weight: 700; color: #555; letter-spacing: 1px; text-transform: uppercase; }
+  .ac-px-label { font-size: 7px; font-weight: 800; color: #fff; letter-spacing: 1px; text-transform: uppercase; }
   .ac-px-val { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; margin-top: 1px; }
   .ac-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; font-size: 9px; }
-  .ac-meta-label { color: #555; font-weight: 700; }
+  .ac-meta-label { color: #fff; font-weight: 800; }
   .ac-meta-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #aaa; }
   .ac-btns { display: flex; gap: 5px; flex-wrap: wrap; }
   .btn-hl   { background: rgba(0,255,136,0.08); color: #00ff88; border: 1px solid rgba(0,255,136,0.25); }
@@ -138,7 +150,7 @@
   .pb-paper { background: rgba(100,160,255,0.1); color: #66aaff; border: 1px solid rgba(100,160,255,0.25); }
   .pos-bar-wrap { padding: 4px 16px 12px; }
   .pos-bar-labels { display: flex; justify-content: space-between; margin-bottom: 4px; }
-  .pos-bar-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; color: #555; }
+  .pos-bar-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 800; }
   .pos-bar-label.sl { color: #ff4444; }
   .pos-bar-label.tp { color: #00ff88; }
   .pos-bar-track { height: 6px; background: #1a1a1a; border-radius: 3px; overflow: hidden; }
@@ -155,7 +167,7 @@
   .pos-r { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #555; }
   .pos-meta-row { display: flex; gap: 12px; padding: 6px 16px 10px; flex-wrap: wrap; }
   .pos-meta-item { font-size: 9px; }
-  .pos-meta-label { color: #555; font-weight: 700; }
+  .pos-meta-label { color: #fff; font-weight: 800; }
   .pos-meta-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: #aaa; }
   .pos-close-btn { display: block; width: calc(100% - 32px); margin: 0 16px 12px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; padding: 7px; border-radius: 4px; cursor: pointer; letter-spacing: 1px; text-align: center; background: rgba(255,68,68,0.06); color: #ff4444; border: 1px solid rgba(255,68,68,0.2); transition: background 0.15s; }
   .pos-close-btn:hover { background: rgba(255,68,68,0.12); }
@@ -170,7 +182,7 @@
   .log-count { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #555; margin-left: auto; }
   .log-table-wrap { overflow-x: auto; }
   .log-table { width: 100%; border-collapse: collapse; }
-  .log-table th { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; letter-spacing: 1px; color: #555; text-transform: uppercase; padding: 6px 10px; border-bottom: 1px solid #1a1a1a; text-align: left; white-space: nowrap; }
+  .log-table th { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 800; letter-spacing: 1px; color: #fff; text-transform: uppercase; padding: 6px 10px; border-bottom: 1px solid #1a1a1a; text-align: left; white-space: nowrap; }
   .log-table td { font-family: 'JetBrains Mono', monospace; font-size: 10px; padding: 7px 10px; border-bottom: 1px solid #0d0d0d; white-space: nowrap; }
   .log-table tr:hover td { background: #0d0d0d; }
   .reason-tp1    { color: #00ff88; font-weight: 700; }
@@ -178,6 +190,41 @@
   .reason-sl     { color: #ff4444; font-weight: 700; }
   .reason-manual { color: #ffaa00; font-weight: 700; }
   .log-empty { padding: 50px; text-align: center; color: #333; font-size: 12px; }
+
+  /* ── COCKPIT BAR ── */
+  .cockpit { position: fixed; bottom: 0; left: 0; right: 0; height: 72px; background: #050505; border-top: 1px solid #1a1a1a; display: flex; z-index: 150; overflow: hidden; }
+  .ck-section { display: flex; flex-direction: column; justify-content: center; padding: 6px 14px; border-right: 1px solid #111; overflow: hidden; }
+  .ck-section:last-child { border-right: none; }
+  .ck-section-range   { flex: 2.2; }
+  .ck-section-os      { flex: 1; }
+  .ck-section-ob      { flex: 1; }
+  .ck-section-near    { flex: 1.2; }
+  .ck-section-ticker  { flex: 3; }
+  .ck-label { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; margin-bottom: 4px; }
+  .ck-sub   { font-size: 7px; color: #555; font-weight: 400; margin-left: 5px; font-family: 'JetBrains Mono', monospace; }
+
+  /* Section 1 — J15M range bar */
+  .ck-range-bar { position: relative; height: 10px; background: #111; border-radius: 5px; margin: 2px 0; }
+  .ck-zone-left  { position: absolute; left: 0; width: 20%; height: 100%; background: rgba(0,255,136,0.10); border-radius: 5px 0 0 5px; }
+  .ck-zone-right { position: absolute; right: 0; width: 20%; height: 100%; background: rgba(255,68,68,0.10); border-radius: 0 5px 5px 0; }
+  .ck-bar-sep-l  { position: absolute; left: 20%; top: 0; bottom: 0; width: 1px; background: rgba(0,255,136,0.2); }
+  .ck-bar-sep-r  { position: absolute; right: 20%; top: 0; bottom: 0; width: 1px; background: rgba(255,68,68,0.2); }
+  .ck-marker { position: absolute; width: 7px; height: 7px; border-radius: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; }
+  .ck-range-foot { display: flex; justify-content: space-between; }
+  .ck-range-lbl  { font-size: 7px; font-weight: 800; color: #555; letter-spacing: 0.5px; }
+
+  /* Sections 2-4 */
+  .ck-chips { display: flex; gap: 3px; flex-wrap: wrap; overflow: hidden; align-items: center; max-height: 34px; }
+  .ck-chip { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 3px; background: #111; border: 1px solid #1a1a1a; white-space: nowrap; }
+  .ck-near-list { font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #aaa; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+  /* Section 5 — price ticker */
+  .ck-ticker { display: flex; gap: 10px; overflow-x: auto; align-items: center; padding: 2px 0; scrollbar-width: none; }
+  .ck-ticker::-webkit-scrollbar { display: none; }
+  .ck-pair-cell { display: flex; flex-direction: column; align-items: center; min-width: 58px; flex-shrink: 0; }
+  .ck-pair-sym   { font-size: 7px; font-weight: 800; color: #555; letter-spacing: 0.5px; text-transform: uppercase; }
+  .ck-pair-price { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; color: #fff; }
+  .ck-pair-chg   { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; }
 
   /* colors */
   .green { color: #00ff88; }
@@ -203,7 +250,6 @@
       <div class="hstat-value" id="h-margin">$0</div>
     </div>
     <div class="sep"></div>
-    <!-- MARKET popover pill -->
     <div class="mkt-btn-wrap">
       <div class="mkt-btn" id="mkt-btn" onclick="toggleMarket(event)">MARKET ▾</div>
       <div class="mkt-popover" id="mkt-popover">
@@ -243,7 +289,7 @@
   <div class="scan-status" id="scan-status">waiting for scan…</div>
 </div>
 
-<!-- ── SCANNER GRID VIEW (full width) ── -->
+<!-- ── SCANNER GRID VIEW ── -->
 <div id="view-grid">
   <div class="card-grid" id="card-grid"></div>
 </div>
@@ -279,6 +325,54 @@
   </div>
 </div>
 
+<!-- ── COCKPIT BAR ── -->
+<div class="cockpit">
+
+  <!-- Section 1: J15M Range Bar -->
+  <div class="ck-section ck-section-range">
+    <div class="ck-label">J15M MARKET RANGE</div>
+    <div class="ck-range-bar" id="ck-range-bar">
+      <div class="ck-zone-left"></div>
+      <div class="ck-zone-right"></div>
+      <div class="ck-bar-sep-l"></div>
+      <div class="ck-bar-sep-r"></div>
+    </div>
+    <div class="ck-range-foot">
+      <span class="ck-range-lbl">OVERSOLD &lt;20</span>
+      <span class="ck-range-lbl">OVERBOUGHT &gt;80</span>
+    </div>
+  </div>
+
+  <!-- Section 2: Oversold -->
+  <div class="ck-section ck-section-os">
+    <div class="ck-label">J15M OVERSOLD</div>
+    <div class="ck-chips" id="ck-os"><span style="color:#333;font-size:9px;">—</span></div>
+  </div>
+
+  <!-- Section 3: Overbought -->
+  <div class="ck-section ck-section-ob">
+    <div class="ck-label">J15M OVERBOUGHT</div>
+    <div class="ck-chips" id="ck-ob"><span style="color:#333;font-size:9px;">—</span></div>
+  </div>
+
+  <!-- Section 4: Near Trigger -->
+  <div class="ck-section ck-section-near">
+    <div class="ck-label">NEAR TRIGGER</div>
+    <div class="ck-near-list" id="ck-near" style="color:#333;">none</div>
+  </div>
+
+  <!-- Section 5: Price Ticker -->
+  <div class="ck-section ck-section-ticker">
+    <div class="ck-label">PRICE SCAN <span class="ck-sub" id="ck-price-cd"></span></div>
+    <div class="ck-ticker" id="ck-ticker"></div>
+  </div>
+
+</div>
+
+<script>
+  const SCAN_INTERVAL  = {{ scan_interval }};
+  const PRICE_INTERVAL = 8;
+</script>
 <script src="/static/dashboard.js"></script>
 </body>
 </html>
