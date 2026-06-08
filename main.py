@@ -222,7 +222,7 @@ def _save_state():
             "cooldowns":              dict(_scanner_mod._cooldowns),
             "updated_at":             datetime.now(timezone.utc).isoformat(),
         }
-        sb.table("scanner_state").upsert(data).execute()
+        sb.table("bounce_scanner_state").upsert(data).execute()
     except Exception as _e:
         print(f"[PERSIST] save error: {_e}")
 
@@ -236,7 +236,7 @@ def _load_state():
         return
     try:
         # ── Trade log → in-memory list ─────────────────────────────────────────
-        log_rows = sb.table("trade_log").select("*").order("created_at").execute()
+        log_rows = sb.table("bounce_trade_log").select("*").order("created_at").execute()
         if log_rows.data:
             for row in log_rows.data:
                 def _ts(iso):
@@ -273,7 +273,7 @@ def _load_state():
             print(f"[RESTORE] trade log: {len(log_rows.data)} entries restored")
 
         # ── Scanner state ──────────────────────────────────────────────────────
-        result = sb.table("scanner_state").select("*").eq("id", 1).execute()
+        result = sb.table("bounce_scanner_state").select("*").eq("id", 1).execute()
         if not result.data:
             print("[RESTORE] No state row found — starting fresh")
             return
@@ -380,7 +380,7 @@ def _append_trade_log(trade: dict, exit_price: float, reason: str, pnl: float, r
         try:
             open_iso  = datetime.fromtimestamp(opened_at, tz=timezone.utc).isoformat()
             close_iso = datetime.fromtimestamp(now_ts,    tz=timezone.utc).isoformat()
-            sb.table("trade_log").insert({
+            sb.table("bounce_trade_log").insert({
                 "pair":             trade["symbol"],
                 "direction":        trade["direction"],
                 "tier":             trade.get("tier"),
