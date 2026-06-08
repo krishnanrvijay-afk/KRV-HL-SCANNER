@@ -54,16 +54,37 @@
   .scan-status .ts  { color: #00ff88; }
   .scan-status .cd  { color: #ffaa00; }
 
+  /* ── J15M OPPORTUNITY BANNER ── */
+  #j15m-banner { background: #0d0d0d; border-bottom: 1px solid #1a1a1a; padding: 10px 20px 0; }
+  .jb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .jb-title { font-size: 9px; font-weight: 800; color: #fff; letter-spacing: 1.5px; text-transform: uppercase; }
+  .jb-legend { display: flex; gap: 14px; align-items: center; }
+  .jb-leg { display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 800; color: #555; white-space: nowrap; }
+  .jb-ldot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .jb-ticks { display: flex; justify-content: space-between; margin-bottom: 3px; }
+  .jb-tick { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 800; }
+  .jb-bar { position: relative; height: 8px; background: #141414; border-radius: 4px; }
+  .jb-zg { position: absolute; left: 0; width: 20%; height: 100%; background: rgba(0,255,136,0.15); border-radius: 4px 0 0 4px; }
+  .jb-zr { position: absolute; right: 0; width: 20%; height: 100%; background: rgba(255,68,68,0.15); border-radius: 0 4px 4px 0; }
+  .jb-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.06); transform: translateX(-50%); }
+  .jb-pin-row { position: relative; width: 100%; overflow: visible; }
+  .jb-pin { position: absolute; top: 0; transform: translateX(-50%); pointer-events: none; }
+  .jb-pin-line { position: absolute; left: 0; top: 0; width: 1px; background: rgba(255,255,255,0.12); transform: translateX(-50%); }
+  .jb-pin-name { position: absolute; left: 0; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 800; white-space: nowrap; letter-spacing: 0.5px; line-height: 1; }
+  .jb-pin-val  { position: absolute; left: 0; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; white-space: nowrap; line-height: 1; }
+
   /* ── PAIR GRID ── */
-  .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #111; }
+  .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 12px; background: #050505; }
   @media (max-width: 1100px) { .card-grid { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 800px)  { .card-grid { grid-template-columns: repeat(2, 1fr); } }
 
-  .pair-card { background: #0a0a0a; padding: 14px 16px; cursor: default; transition: background 0.1s; }
-  .pair-card:hover { background: #0e0e0e; }
+  .pair-card { background: #0d0d0d; padding: 12px 14px; border-radius: 8px; cursor: default; transition: box-shadow 0.2s; }
 
   /* Card header */
   .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .card-sym-block { display: flex; align-items: flex-start; gap: 6px; }
+  .sym-dir-wrap { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+  .sym-dir-row { display: flex; align-items: center; gap: 3px; }
   .card-sym { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; line-height: 1; }
   .card-right { text-align: right; }
   .card-price-line { display: flex; align-items: baseline; gap: 6px; justify-content: flex-end; flex-wrap: nowrap; }
@@ -283,11 +304,9 @@
   .cockpit { position: fixed; bottom: 0; left: 0; right: 0; height: 84px; background: #050505; border-top: 1px solid #1a1a1a; display: flex; z-index: 150; overflow: hidden; }
   .ck-section { display: flex; flex-direction: column; justify-content: center; padding: 6px 14px; border-right: 1px solid #111; overflow: hidden; }
   .ck-section:last-child { border-right: none; }
-  /* 4 sections: range=40%, OS=20%, OB=20%, near=20% */
+  /* 2 sections: range bar + near trigger */
   .ck-section-range { flex: 4; justify-content: flex-start; padding: 4px 12px 2px; overflow: visible; }
-  .ck-section-os    { flex: 2; }
-  .ck-section-ob    { flex: 2; }
-  .ck-section-near  { flex: 2; }
+  .ck-section-near  { flex: 3; }
   .ck-label { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; margin-bottom: 3px; }
 
   /* Section 1 — J15M range bar (label layout) */
@@ -369,6 +388,31 @@
   <div class="scan-status" id="scan-status">waiting for scan…</div>
 </div>
 
+<!-- ── J15M OPPORTUNITY BANNER ── -->
+<div id="j15m-banner">
+  <div class="jb-header">
+    <span class="jb-title">J15M Bounce Opportunity Map</span>
+    <div class="jb-legend">
+      <span class="jb-leg"><span class="jb-ldot" style="background:#00ff88"></span>OVERSOLD &lt;20 LONG</span>
+      <span class="jb-leg"><span class="jb-ldot" style="background:#ff4444"></span>OVERBOUGHT &gt;80 SHORT</span>
+    </div>
+  </div>
+  <div class="jb-ticks">
+    <span class="jb-tick" style="color:#00ff88">0</span>
+    <span class="jb-tick" style="color:#00ff88">20</span>
+    <span class="jb-tick" style="color:#555">40</span>
+    <span class="jb-tick" style="color:#555">60</span>
+    <span class="jb-tick" style="color:#ff4444">80</span>
+    <span class="jb-tick" style="color:#ff4444">100</span>
+  </div>
+  <div class="jb-bar">
+    <div class="jb-zg"></div>
+    <div class="jb-zr"></div>
+    <div class="jb-mid"></div>
+  </div>
+  <div class="jb-pin-row" id="jb-pin-row"></div>
+</div>
+
 <!-- ── SCANNER GRID VIEW ── -->
 <div id="view-grid">
   <div class="card-grid" id="card-grid"></div>
@@ -435,19 +479,7 @@
     </div>
   </div>
 
-  <!-- Section 2: Oversold -->
-  <div class="ck-section ck-section-os">
-    <div class="ck-label">J15M OVERSOLD</div>
-    <div class="ck-chips" id="ck-os"><span style="color:#333;font-size:9px;">—</span></div>
-  </div>
-
-  <!-- Section 3: Overbought -->
-  <div class="ck-section ck-section-ob">
-    <div class="ck-label">J15M OVERBOUGHT</div>
-    <div class="ck-chips" id="ck-ob"><span style="color:#333;font-size:9px;">—</span></div>
-  </div>
-
-  <!-- Section 4: Near Trigger -->
+  <!-- Section 2: Near Trigger -->
   <div class="ck-section ck-section-near">
     <div class="ck-label">NEAR TRIGGER</div>
     <div class="ck-near-list" id="ck-near" style="color:#333;">none</div>
