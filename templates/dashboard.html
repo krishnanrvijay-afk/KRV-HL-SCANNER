@@ -220,6 +220,46 @@
   .pos-close-btn { display: block; width: calc(100% - 32px); margin: 0 16px 12px; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; padding: 7px; border-radius: 4px; cursor: pointer; letter-spacing: 1px; text-align: center; background: rgba(255,68,68,0.06); color: #ff4444; border: 1px solid rgba(255,68,68,0.2); transition: background 0.15s; }
   .pos-close-btn:hover { background: rgba(255,68,68,0.12); }
 
+  /* ── POSITIONS CARD V2 ── */
+  .pcv2 { background: #0d0d0d; border: 1px solid #1a1a1a; border-radius: 6px; overflow: hidden; }
+  .pcv2-hdr { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px 6px; gap: 8px; }
+  .pcv2-hdr-l { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; min-width: 0; }
+  .pcv2-sym { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; line-height: 1; }
+  .pcv2-dir { font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 3px; border: 1px solid; letter-spacing: 1px; }
+  .pcv2-sig { font-size: 10px; font-weight: 700; color: #555; letter-spacing: 0.5px; text-transform: uppercase; }
+  .pcv2-sc  { font-size: 9px; font-weight: 700; color: #444; }
+  .pcv2-timer { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #777; letter-spacing: 1px; flex-shrink: 0; }
+  .pcv2-sub { padding: 0 16px 10px; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #444; }
+  .pcv2-live { display: flex; align-items: center; gap: 8px; padding: 8px 16px 10px; border-top: 1px solid #111; }
+  .pcv2-price { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 700; color: #fff; line-height: 1; }
+  .pcv2-pnl { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; }
+  .pcv2-r   { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; }
+  .pcv2-ruler-wrap { padding: 52px 16px 30px; }
+  .pcv2-ruler-bar { position: relative; height: 8px; background: #111; border-radius: 4px; overflow: visible; }
+  .pcv2-z    { position: absolute; top: 0; height: 100%; }
+  .pcv2-zr   { background: rgba(255,68,68,0.22); }
+  .pcv2-zg   { background: rgba(0,255,136,0.12); }
+  .pcv2-ztp1 { background: rgba(68,136,255,0.18); }
+  .pcv2-mk   { position: absolute; top: 0; bottom: 0; overflow: visible; }
+  .pcv2-mkt  { position: absolute; left: 0; bottom: calc(100% + 6px); transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; white-space: nowrap; text-align: center; line-height: 1.4; display: block; pointer-events: none; }
+  .pcv2-mkt-be { bottom: calc(100% + 22px); }
+  .pcv2-mck  { position: absolute; left: -1px; width: 2px; top: -5px; bottom: -5px; display: block; }
+  .pcv2-mkb  { position: absolute; left: 0; top: calc(100% + 6px); transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; white-space: nowrap; text-align: center; line-height: 1.4; display: block; pointer-events: none; }
+  .pcv2-dot  { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; border-radius: 50%; border: 2px solid #0d0d0d; z-index: 5; transition: left 0.5s ease; }
+  .pcv2-metrics { display: flex; padding: 8px 16px; border-top: 1px solid #111; }
+  .pcv2-metric  { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .pcv2-ml { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 0.5px; }
+  .pcv2-mv { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; }
+  .pcv2-narr { margin: 0 16px 10px; padding: 5px 9px; background: #060606; border: 1px solid #181818; border-radius: 3px; font-family: 'JetBrains Mono', monospace; font-size: 9px; color: #444; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pcv2-actions { display: flex; gap: 8px; padding: 0 16px 12px; }
+  .pcv2-btn { flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; padding: 7px 4px; border-radius: 4px; cursor: pointer; letter-spacing: 0.8px; text-align: center; transition: background 0.15s; border: 1px solid; }
+  .pcv2-btn-hl    { background: rgba(0,255,136,0.06);  color: #00ff88; border-color: rgba(0,255,136,0.25); }
+  .pcv2-btn-hl:hover { background: rgba(0,255,136,0.12); }
+  .pcv2-btn-mexc  { background: rgba(68,136,255,0.06); color: #4488ff; border-color: rgba(68,136,255,0.25); }
+  .pcv2-btn-mexc:hover { background: rgba(68,136,255,0.12); }
+  .pcv2-btn-force { background: rgba(255,68,68,0.10);  color: #ff4444; border-color: rgba(255,68,68,0.30); }
+  .pcv2-btn-force:hover { background: rgba(255,68,68,0.18); }
+
   /* ── LOG TAB ── */
   #tab-log { display: none; padding: 20px 24px; }
   .log-toolbar { display: flex; gap: 8px; margin-bottom: 16px; align-items: center; }
