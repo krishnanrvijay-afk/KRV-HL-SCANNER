@@ -93,11 +93,43 @@ function updateScanStatus() {
 }
 
 // ── Master render ─────────────────────────────────────────────────────────────
+
+// ── Market Health strip ───────────────────────────────────────────────────────
+function renderMarketHealth() {
+  const mh = STATE?.market_health;
+  const colCls = st => 'mh-col mh-col-' + (st || 'caution').toLowerCase();
+  const rec = (st, side) => {
+    if (st === 'RUN')     return side === 'SHORT' ? 'TC and Bounce SHORTs clear' : 'TC and Bounce LONGs clear';
+    if (st === 'CAUTION') return side === 'SHORT' ? 'Avoid new SHORTs — reversal risk' : 'Avoid new LONGs — momentum weak';
+    if (st === 'HALT')    return 'No new entries — protect open positions';
+    return 'Initialising…';
+  };
+  const metStr = (isBear) => {
+    if (!mh) return '';
+    const n   = isBear ? (mh.bear_count ?? 0) : (mh.bull_count ?? 0);
+    const lbl = isBear ? 'Bearish' : 'Bullish';
+    const slN = Math.round((mh.sl_rate || 0) * 6);
+    return `${lbl} ${n}/${mh.total || '?'} pairs • ADX avg ${(mh.avg_adx||0).toFixed(1)} • J5 avg ${(mh.avg_j5||0).toFixed(1)} • SL rate ${slN}/6`;
+  };
+  const renderSide = (elId, status, side, isBear) => {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.className = colCls(status);
+    el.innerHTML =
+      `<div class="mh-badge">${status || 'CAUTION'}</div>` +
+      `<div class="mh-rec">${rec(status, side)}</div>` +
+      `<div class="mh-metrics">${metStr(isBear)}</div>`;
+  };
+  renderSide('mh-short', mh?.short_status || 'CAUTION', 'SHORT', true);
+  renderSide('mh-long',  mh?.long_status  || 'CAUTION', 'LONG',  false);
+}
+
 function render() {
   renderHeader();
   updateNavCounts();
   updateScanStatus();
   renderBanner();
+  renderMarketHealth();
   if (activeTab === 'grid')   renderCards();
   if (activeTab === 'alerts') renderAlertsTab();
   if (activeTab === 'pos')    renderPositionsTab();

@@ -41,6 +41,7 @@ from scanner import (
     run_full_scan, scan_pair_state, get_pending,
     get_scan_count, set_close_cooldown, clear_cooldown,
     get_cooldown_remaining, clear_all_scanner_state, log_startup_config,
+    compute_market_health,
 )
 import scanner as _scanner_mod  # direct access to _cooldowns dict for persistence
 
@@ -66,6 +67,7 @@ class AppState:
         self.trades_opened:        int               = 0
         self.last_scan_at:         Optional[int]     = None
         self.scan_snapshots:       dict              = {}  # symbol -> last 3 scan snapshots
+        self.market_health:        dict              = {}
 
     @property
     def slots_used(self) -> int:
@@ -167,6 +169,7 @@ class AppState:
             "last_scan_at":     self.last_scan_at,
             "price_changes":    self.price_changes,
             "deploy_time":      DEPLOY_TIME,
+            "market_health":    self.market_health,
         }
 
 
@@ -485,9 +488,12 @@ async def _scan_loop():
     await asyncio.sleep(3)
     while True:
         try:
-            new_alerts = await run_full_scan(hl_client)
+            new_alerts = await run_full_scan(hl_client, market_health=app_state.market_health)
             app_state.last_scan_at = int(time.time())
             app_state.pair_states  = await scan_pair_state(hl_client)
+            app_state.market_health = compute_market_health(
+                app_state.pair_states, list(app_state.trade_log)
+            )
 
             # Capture per-pair scan snapshots for the live overlay
             for _ps in app_state.pair_states:

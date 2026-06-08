@@ -201,9 +201,60 @@ def clear_all_scanner_state():
     _scan_count = 0
 
 
+def compute_market_health(pair_states: list[dict], recent_trades: list[dict]) -> dict:
+    """Aggregate market-wide health; returns RUN/CAUTION/HALT per direction."""
+    total = len(pair_states)
+    if total == 0:
+        return {
+            "short_status": "CAUTION", "long_status": "CAUTION",
+            "bear_count": 0, "bull_count": 0, "total": 0,
+            "bear_ratio": 0.0, "bull_ratio": 0.0,
+            "avg_adx": 0.0, "avg_j5": 50.0, "sl_rate": 0.0,
+        }
+    bear_count = sum(1 for s in pair_states if s.get("trend") in ("Bearish", "Strong Bear"))
+    bull_count = sum(1 for s in pair_states if s.get("trend") in ("Bullish", "Strong Bull"))
+    bear_ratio = bear_count / total
+    bull_ratio = bull_count / total
+    adx_vals   = [s["adx1h"] for s in pair_states if s.get("adx1h") is not None]
+    j5_vals    = [s["j5m"]   for s in pair_states if s.get("j5m")  is not None]
+    avg_adx    = sum(adx_vals) / len(adx_vals) if adx_vals else 0.0
+    avg_j5     = sum(j5_vals)  / len(j5_vals)  if j5_vals  else 50.0
+    recent6    = [t for t in recent_trades
+                  if (t.get("close_reason") or t.get("exit_reason"))][-6:]
+    sl_rate    = (
+        sum(1 for t in recent6
+            if (t.get("close_reason") or t.get("exit_reason") or "").upper().startswith("SL"))
+        / len(recent6)
+    ) if recent6 else 0.0
+    if bear_ratio >= 0.6 and avg_adx >= 35 and avg_j5 <= 70 and sl_rate < 0.4:
+        short_status = "RUN"
+    elif bear_ratio < 0.3 or sl_rate >= 0.6 or (avg_j5 >= 85 and bear_ratio < 0.5):
+        short_status = "HALT"
+    else:
+        short_status = "CAUTION"
+    if bull_ratio >= 0.6 and avg_adx >= 35 and avg_j5 >= 30 and sl_rate < 0.4:
+        long_status = "RUN"
+    elif bull_ratio < 0.3 or sl_rate >= 0.6 or (avg_j5 <= 15 and bull_ratio < 0.5):
+        long_status = "HALT"
+    else:
+        long_status = "CAUTION"
+    return {
+        "short_status": short_status,
+        "long_status":  long_status,
+        "bear_count":   bear_count,
+        "bull_count":   bull_count,
+        "total":        total,
+        "bear_ratio":   round(bear_ratio, 3),
+        "bull_ratio":   round(bull_ratio, 3),
+        "avg_adx":      round(avg_adx, 1),
+        "avg_j5":       round(avg_j5, 1),
+        "sl_rate":      round(sl_rate, 3),
+    }
+
+
 # ── Main scan ─────────────────────────────────────────────────────────────────
 
-async def run_full_scan(hl_client) -> list[dict]:
+async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list[dict]:
     global _scan_count
 
     _scan_count += 1
@@ -329,6 +380,15 @@ async def run_full_scan(hl_client) -> list[dict]:
                     "fired_at":     int(time.time()),
                     "is_in_trade":  False,
                 }
+                # ── Market HALT gate ──────────────────────────────────────
+                _mh = market_health or {}
+                if direction == "SHORT" and _mh.get("short_status") == "HALT":
+                    log.info(f"[BLOCKED] {symbol} SHORT — MARKET HALT")
+                    continue
+                if direction == "LONG" and _mh.get("long_status") == "HALT":
+                    log.info(f"[BLOCKED] {symbol} LONG — MARKET HALT")
+                    continue
+
                 new_alerts.append(alert)
                 _pending.pop(key, None)
                 log.info(f"[ALERT] {symbol} {direction} tier={tier} lev={lev}x entry={price} "
