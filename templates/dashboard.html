@@ -18,6 +18,11 @@
   .hstat-label { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 1px; text-transform: uppercase; }
   .hstat-value { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; }
   .sep { width: 1px; height: 28px; background: #1a1a1a; }
+  .mode-badge { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 800; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px; }
+  .mode-badge-paper       { background: rgba(100,160,255,0.1);  color: #66aaff; border: 1px solid rgba(100,160,255,0.25); }
+  .mode-badge-live-safe   { background: rgba(0,230,118,0.1);    color: #00e676; border: 1px solid rgba(0,230,118,0.3); }
+  .mode-badge-live-danger { background: rgba(255,61,87,0.15);   color: #ff3d57; border: 1px solid rgba(255,61,87,0.45); animation: danger-pulse 1.2s ease-in-out infinite; }
+  @keyframes danger-pulse { 0%,100% { box-shadow: none } 50% { box-shadow: 0 0 8px rgba(255,61,87,0.5) } }
   .paper-badge { background: rgba(100,160,255,0.1); color: #66aaff; border: 1px solid rgba(100,160,255,0.25); font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: 1px; }
 
   /* Market popover */
@@ -478,7 +483,7 @@
       <div class="hstat-value" id="h-scans">0</div>
     </div>
     <div class="sep"></div>
-    <div id="paper-badge" class="paper-badge" style="display:none;">PAPER</div>
+    <div id="mode-badge" class="mode-badge" style="display:none;"></div>
     <div id="cb-badge" style="display:none; font-family:'JetBrains Mono',monospace; font-size:9px; font-weight:700; padding:3px 8px; border-radius:4px; background:rgba(255,68,68,0.1); color:#ff4444; border:1px solid rgba(255,68,68,0.3);">⚡ CB ACTIVE</div>
   </div>
 </div>
