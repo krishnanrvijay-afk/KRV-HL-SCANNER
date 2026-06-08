@@ -601,7 +601,11 @@ def _do_partial_close_tp1(key: str, trade: dict, exit_price: float):
           else (entry - exit_price) * half_size
     r   = _compute_r(pnl, trade)
 
-    # Update trade in-place — keep it open
+    # Log the TP1 partial close BEFORE modifying trade dict (so size/metadata is correct)
+    _append_trade_log(trade, exit_price, "TP1", pnl, r)
+    _update_daily_pnl(pnl)
+
+    # Update trade in-place — keep it open for TP2 watch
     trade["remaining_size"] = half_size
     trade["tp1_hit"]        = True
     trade["extreme_price"]  = exit_price
@@ -610,7 +614,6 @@ def _do_partial_close_tp1(key: str, trade: dict, exit_price: float):
     trade["margin"] = old_margin / 2
     app_state.open_trades[key]     = trade
     app_state.margin_deployed      = max(0.0, app_state.margin_deployed - old_margin / 2)
-    _update_daily_pnl(pnl)
 
     print(f"[EXIT] {sym} {direction} TP1 partial close at {exit_price} "
           f"half_pnl=${pnl:.2f} r={r:+.2f}R — remainder open watching TP2")
@@ -654,28 +657,26 @@ async def _exit_monitor_loop():
                     _do_close_trade(key, trade, current, "SL")
                     continue
 
-                # ── TP2 (only after TP1 has been hit) ─────────────────────────
-                if tp1_hit and tp2_price:
-                    # SHORT: TP2 when price falls below tp2_price
-                    # LONG : TP2 when price rises above tp2_price
-                    tp2_reached = (is_short and current <= tp2_price) or \
-                                  (not is_short and current >= tp2_price)
-                    if tp2_reached:
-                        print(f"[EXIT CHECK] {sym} {direction} price={current} "
-                              f"tp2={tp2_price} → TP2 REACHED → closing remainder")
-                        _do_close_trade(key, trade, current, "TP2")
-                        continue
-
-                # ── TP1 (first hit only) ───────────────────────────────────────
+                # ── TP1 (always checked first — partial close, half position) ────
                 if not tp1_hit and tp1_price:
-                    # SHORT: TP1 when price falls below tp1_price
-                    # LONG : TP1 when price rises above tp1_price
                     tp1_reached = (is_short and current <= tp1_price) or \
                                   (not is_short and current >= tp1_price)
+                    print(f"[EXIT CHECK] {sym} {direction} price={current} "
+                          f"tp1={tp1_price} tp1_hit={tp1_hit} → "
+                          f"{'TP1 TRIGGERED → partial close' if tp1_reached else 'watching tp1'}")
                     if tp1_reached:
-                        print(f"[EXIT CHECK] {sym} {direction} price={current} "
-                              f"tp1={tp1_price} → TP1 REACHED → partial close")
                         _do_partial_close_tp1(key, trade, current)
+                        continue
+
+                # ── TP2 (only after tp1_hit=True — closes remainder) ──────────
+                if tp1_hit and tp2_price:
+                    tp2_reached = (is_short and current <= tp2_price) or \
+                                  (not is_short and current >= tp2_price)
+                    print(f"[EXIT CHECK] {sym} {direction} price={current} "
+                          f"tp2={tp2_price} tp1_hit={tp1_hit} → "
+                          f"{'TP2 TRIGGERED → full close remainder' if tp2_reached else 'watching tp2'}")
+                    if tp2_reached:
+                        _do_close_trade(key, trade, current, "TP2")
                         continue
 
                 # No exit this cycle
