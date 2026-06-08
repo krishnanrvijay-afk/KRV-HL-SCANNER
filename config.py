@@ -12,6 +12,16 @@ SCAN_INTERVAL_SECONDS  = 30
 PRICE_INTERVAL_SECONDS = 8
 PAPER_MODE             = True
 
+# ── Live trading safety ────────────────────────────────────────────────────────
+# When PAPER_MODE is False and LIVE_MANUAL_ENTRY_ONLY is True, the scanner will
+# never automatically open a live exchange position. Alerts fire and the overlay
+# updates normally but all live trade entry requires deliberate human action via
+# the symbol overlay Open HL or Open MEXC buttons. SL and TP exits continue to
+# execute automatically once a trade is open. This is the required mode for live
+# trading. Only set LIVE_MANUAL_ENTRY_ONLY to False if you explicitly want fully
+# automated live entry on every signal.
+LIVE_MANUAL_ENTRY_ONLY = True
+
 J15M_SHORT_GATE  = 80
 J15M_LONG_GATE   = 20
 J1H_SHORT_MIN    = 60
