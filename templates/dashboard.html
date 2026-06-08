@@ -54,67 +54,75 @@
   .scan-status .ts  { color: #00ff88; }
   .scan-status .cd  { color: #ffaa00; }
 
-  /* ── J15M OPPORTUNITY BANNER ── */
-  @keyframes jb-conf-pulse { 0%,100% { text-shadow: 0 0 6px currentColor; } 50% { text-shadow: 0 0 16px currentColor; } }
-  @keyframes jb-dot-pulse  { 0%,100% { box-shadow: 0 0 4px rgba(255,170,0,0.5); } 50% { box-shadow: 0 0 8px rgba(255,170,0,0.9); } }
-  #j15m-banner { background: #0d0d0d; border-bottom: 1px solid #1a1a1a; padding: 10px 20px 6px; }
-  .jb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-  .jb-title { font-size: 9px; font-weight: 800; color: #fff; letter-spacing: 2px; text-transform: uppercase; }
-  .jb-header-right { display: flex; align-items: center; gap: 16px; }
-  .jb-legend { display: flex; gap: 14px; align-items: center; }
-  .jb-leg { display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 800; white-space: nowrap; }
+  /* ── J BOUNCE MAP BANNER ── */
+  @keyframes jb-conf-pulse   { 0%,100% { text-shadow: 0 0 4px currentColor; } 50% { text-shadow: 0 0 14px currentColor; } }
+  @keyframes jb-dot-pulse    { 0%,100% { box-shadow: 0 0 3px rgba(255,170,0,0.5); } 50% { box-shadow: 0 0 7px rgba(255,170,0,0.9); } }
+  @keyframes conf-long-glow  { 0%,100% { box-shadow: 0 0 18px rgba(0,230,118,0.15),0 2px 8px rgba(0,0,0,0.6); } 50% { box-shadow: 0 0 32px rgba(0,230,118,0.3),0 2px 8px rgba(0,0,0,0.6); } }
+  @keyframes conf-short-glow { 0%,100% { box-shadow: 0 0 18px rgba(255,61,87,0.15),0 2px 8px rgba(0,0,0,0.6); }  50% { box-shadow: 0 0 32px rgba(255,61,87,0.3),0 2px 8px rgba(0,0,0,0.6); } }
+  @keyframes conf-sym-pulse  { 0%,100% { text-shadow: 0 0 6px currentColor; } 50% { text-shadow: 0 0 16px currentColor; } }
+  #j15m-banner { background: #0d0d0d; border-bottom: 1px solid #1a1a1a; padding: 5px 16px 4px; }
+  .jb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+  .jb-title { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 2px; text-transform: uppercase; }
+  .jb-header-right { display: flex; align-items: center; gap: 12px; }
+  .jb-legend { display: flex; gap: 10px; align-items: center; }
+  .jb-leg { display: flex; align-items: center; gap: 3px; font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 800; white-space: nowrap; }
   .jb-leg-green { color: #00e676; } .jb-leg-red { color: #ff3d57; } .jb-leg-amber { color: #ffaa00; }
-  .jb-ldot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .jb-ldot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
   .jb-ldot-pulse { animation: jb-dot-pulse 2s ease-in-out infinite; }
-  .jb-tf-pills { display: flex; gap: 4px; }
+  .jb-tf-pills { display: flex; gap: 3px; }
   .jb-tf-pill { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 3px; border: 1px solid #2a2a2a; background: #111; color: #444; cursor: pointer; transition: all 0.15s; }
-  .jb-tf-active-15M  { background: rgba(0,230,118,0.1);  border-color: rgba(0,230,118,0.4);  color: #00e676; }
-  .jb-tf-active-1H   { background: rgba(255,170,0,0.1);  border-color: rgba(255,170,0,0.4);  color: #ffaa00; }
+  .jb-tf-active-15M  { background: rgba(0,230,118,0.1);   border-color: rgba(0,230,118,0.4);   color: #00e676; }
+  .jb-tf-active-1H   { background: rgba(255,170,0,0.1);   border-color: rgba(255,170,0,0.4);   color: #ffaa00; }
   .jb-tf-active-BOTH { background: rgba(100,160,255,0.1); border-color: rgba(100,160,255,0.4); color: #66aaff; }
-  .jb-ruler { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
-  .jb-ruler-label { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 800; width: 18px; flex-shrink: 0; margin-top: 10px; line-height: 1; }
+  .jb-ruler-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .jb-rdot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
   .jb-ruler-content { flex: 1; min-width: 0; }
-  .jb-ticks { display: flex; justify-content: space-between; margin-bottom: 2px; }
-  .jb-tick { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 800; }
-  .jb-bar { position: relative; height: 6px; background: #141414; border-radius: 3px; }
+  .jb-ticks { display: flex; justify-content: space-between; margin-bottom: 1px; }
+  .jb-tick { font-family: 'JetBrains Mono', monospace; font-size: 7px; font-weight: 800; }
+  .jb-bar-outer { position: relative; margin-top: 16px; }
+  .jb-chips-layer { position: absolute; left: 0; right: 0; bottom: 5px; height: 0; overflow: visible; z-index: 1; pointer-events: none; }
+  .jb-bar { position: relative; height: 5px; background: #141414; border-radius: 3px; }
   .jb-zg { position: absolute; left: 0; height: 100%; background: rgba(0,230,118,0.18); border-radius: 3px 0 0 3px; }
   .jb-zr { position: absolute; height: 100%; background: rgba(255,61,87,0.18); border-radius: 0 3px 3px 0; }
-  .jb-thresh { position: absolute; top: -2px; bottom: -2px; width: 1px; background: rgba(255,255,255,0.08); }
   .jb-mid { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: rgba(255,255,255,0.05); transform: translateX(-50%); }
-  .jb-pin-row { position: relative; width: 100%; overflow: visible; min-height: 48px; }
-  .jb-pin { position: absolute; top: 0; transform: translateX(-50%); pointer-events: none; }
-  .jb-pin-line { position: absolute; left: 0; top: 0; width: 1px; background: rgba(255,255,255,0.1); transform: translateX(-50%); }
-  .jb-pin-name { position: absolute; left: 0; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 800; white-space: nowrap; letter-spacing: 0.5px; line-height: 1; }
-  .jb-pin-conf { animation: jb-conf-pulse 2s ease-in-out infinite; }
-  .jb-pin-val { position: absolute; left: 0; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; white-space: nowrap; line-height: 1; }
-  .jb-conf-badge { position: absolute; left: 0; transform: translateX(-50%); font-family: 'JetBrains Mono', monospace; font-size: 7px; font-weight: 800; padding: 1px 4px; border-radius: 2px; white-space: nowrap; }
-  .jb-conf-long  { background: rgba(0,230,118,0.15); color: #00e676; border: 1px solid rgba(0,230,118,0.3); }
-  .jb-conf-short { background: rgba(255,61,87,0.15);  color: #ff3d57; border: 1px solid rgba(255,61,87,0.3); }
+  .cb-chip { position: absolute; bottom: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 800; white-space: nowrap; letter-spacing: 0.3px; }
+  .cb-tick { width: 1px; height: 4px; background: currentColor; opacity: 0.55; flex-shrink: 0; }
+  .cb-conf { animation: jb-conf-pulse 2.2s ease-in-out infinite; }
 
   /* ── PAIR GRID ── */
-  .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 12px; background: #050505; }
+  .card-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 10px 12px 12px; background: #050505; }
   @media (max-width: 1100px) { .card-grid { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 800px)  { .card-grid { grid-template-columns: repeat(2, 1fr); } }
 
-  .pair-card { background: #0d0d0d; padding: 12px 14px; border-radius: 8px; cursor: default; transition: box-shadow 0.2s; }
+  .pair-card { background: #0d0d0d; padding: 9px 11px; border-radius: 8px; cursor: default; transition: box-shadow 0.2s; }
+  .card-conf-long  { border: 1px solid rgba(0,230,118,0.9) !important; animation: conf-long-glow 2.5s ease-in-out infinite; }
+  .card-conf-short { border: 1px solid rgba(255,61,87,0.9)  !important; animation: conf-short-glow 2.5s ease-in-out infinite; }
 
   /* Card header */
-  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
   .card-sym-block { display: flex; align-items: flex-start; gap: 6px; }
   .sym-dir-wrap { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
   .sym-dir-row { display: flex; align-items: center; gap: 3px; }
   .card-sym { font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 1px; line-height: 1; }
+  .card-sym-conf-long  { color: #00e676; text-shadow: 0 0 10px rgba(0,230,118,0.5); animation: conf-sym-pulse 2s ease-in-out infinite; }
+  .card-sym-conf-short { color: #ff3d57; text-shadow: 0 0 10px rgba(255,61,87,0.5);  animation: conf-sym-pulse 2s ease-in-out infinite; }
   .card-right { text-align: right; }
   .card-price-line { display: flex; align-items: baseline; gap: 6px; justify-content: flex-end; flex-wrap: nowrap; }
   .card-price    { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 800; color: #fff; }
   .card-chg      { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; }
   .card-price-cd { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 400; color: #383838; }
-  .card-adx-block { margin-top: 4px; display: flex; align-items: baseline; gap: 4px; justify-content: flex-end; }
-  .card-adx-label { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 1px; text-transform: uppercase; }
-  .card-adx-val   { font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700; line-height: 1; }
+
+  /* Inline J values on symbol line */
+  .j-inline { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; margin-left: 4px; display: flex; align-items: center; gap: 2px; }
+  .j-slash { color: #2a2a2a; font-size: 9px; }
+
+  /* Compact ADX line (below card-top, above gate rows) */
+  .card-adx-compact { display: flex; align-items: baseline; gap: 4px; margin-bottom: 5px; }
+  .adx-cl { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 1px; text-transform: uppercase; }
+  .adx-cv { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; line-height: 1; }
 
   /* Direction rows */
-  .dir-row { display: flex; align-items: center; gap: 6px; padding: 5px 7px; border-radius: 4px; margin-bottom: 4px; }
+  .dir-row { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; margin-bottom: 4px; }
   .dir-row.long-row  { background: rgba(0,255,136,0.05); border: 1px solid rgba(0,255,136,0.12); }
   .dir-row.short-row { background: rgba(255,68,68,0.05);  border: 1px solid rgba(255,68,68,0.12); }
   .dir-arrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; flex-shrink: 0; width: 14px; }
@@ -135,8 +143,22 @@
   .dv-label { font-size: 6px; font-weight: 800; color: #fff; letter-spacing: 0.5px; text-transform: uppercase; }
   .dv-val   { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700; }
 
+  /* Confluence gate mini bars (RSI + Depth) */
+  .cbar-row { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; }
+  .cbar-dot { flex-shrink: 0; }
+  .cbar-label { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 0.5px; text-transform: uppercase; flex-shrink: 0; min-width: 26px; }
+  .cbar-track { flex: 1; position: relative; height: 6px; background: #141414; border-radius: 3px; }
+  .cbar-zg { position: absolute; left: 0; top: 0; height: 100%; background: rgba(0,230,118,0.15); border-radius: 3px 0 0 3px; }
+  .cbar-zr { position: absolute; top: 0; height: 100%; background: rgba(255,61,87,0.15); border-radius: 0 3px 3px 0; }
+  .cbar-fill { position: absolute; top: 0; height: 100%; border-radius: 3px; }
+  .cbar-thresh { position: absolute; top: -2px; bottom: -2px; border-left: 1.5px solid rgba(255,255,255,0.15); }
+  .cbar-thresh-l { border-color: rgba(0,230,118,0.35) !important; }
+  .cbar-thresh-r { border-color: rgba(255,61,87,0.35)  !important; }
+  .cbar-cursor { position: absolute; top: 50%; transform: translate(-50%,-50%); width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid #0d0d0d; }
+  .cbar-val { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; color: #777; flex-shrink: 0; min-width: 26px; text-align: right; }
+
   /* Card footer pills */
-  .card-footer { display: flex; gap: 5px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+  .card-footer { display: flex; gap: 5px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
   .pill { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; padding: 2px 7px; border-radius: 3px; letter-spacing: 0.5px; }
   .pill-scanning  { background: #111; color: #333; border: 1px solid #1a1a1a; }
   .pill-near      { background: transparent; color: #fff; border: 1px solid #444; }
@@ -146,11 +168,10 @@
   .pill-intrade   { background: rgba(100,160,255,0.1); color: #66aaff; border: 1px solid rgba(100,160,255,0.25); }
   .pill-cd        { background: #111; color: #555; border: 1px solid #1a1a1a; }
   .pill-adxmax    { background: rgba(255,68,68,0.07); color: #ff4444; border: 1px solid rgba(255,68,68,0.2); }
-  .pill-conf-long  { background: rgba(0,230,118,0.15); color: #00e676; border: 1px solid rgba(0,230,118,0.4); animation: jb-conf-pulse 2s ease-in-out infinite; }
-  .pill-conf-short { background: rgba(255,61,87,0.15);  color: #ff3d57; border: 1px solid rgba(255,61,87,0.4);  animation: jb-conf-pulse 2s ease-in-out infinite; }
-  @keyframes conf-sym-pulse { 0%,100% { text-shadow: 0 0 6px currentColor; } 50% { text-shadow: 0 0 16px currentColor; } }
-  .card-sym-conf-long  { color: #00e676; text-shadow: 0 0 10px rgba(0,230,118,0.5); animation: conf-sym-pulse 2s ease-in-out infinite; }
-  .card-sym-conf-short { color: #ff3d57; text-shadow: 0 0 10px rgba(255,61,87,0.5);  animation: conf-sym-pulse 2s ease-in-out infinite; }
+  .pill-ready-long  { background: rgba(0,230,118,0.15); color: #00e676; border: 1px solid rgba(0,230,118,0.45); animation: jb-conf-pulse 2s ease-in-out infinite; }
+  .pill-ready-short { background: rgba(255,61,87,0.15);  color: #ff3d57; border: 1px solid rgba(255,61,87,0.45);  animation: jb-conf-pulse 2s ease-in-out infinite; }
+  .pill-near-rdy  { background: transparent; color: #fff; border: 1px solid #555; }
+  .pill-partial   { background: rgba(255,170,0,0.08); color: #ffaa00; border: 1px solid rgba(255,170,0,0.25); }
 
   /* ── ALERTS TAB ── */
   #tab-alerts { display: none; padding: 20px 24px; }
@@ -390,12 +411,12 @@
 <!-- ── J15M OPPORTUNITY BANNER ── -->
 <div id="j15m-banner">
   <div class="jb-header">
-    <span class="jb-title">J Bounce Opportunity Map</span>
+    <span class="jb-title">J — BOUNCE MAP</span>
     <div class="jb-header-right">
       <div class="jb-legend">
-        <span class="jb-leg jb-leg-green"><span class="jb-ldot" style="background:#00e676"></span>OVERSOLD LONG</span>
-        <span class="jb-leg jb-leg-red"><span class="jb-ldot" style="background:#ff3d57"></span>OVERBOUGHT SHORT</span>
-        <span class="jb-leg jb-leg-amber"><span class="jb-ldot jb-ldot-pulse" style="background:#ffaa00"></span>✦ CONFLUENCE</span>
+        <span class="jb-leg jb-leg-green"><span class="jb-ldot" style="background:#00e676"></span>OS</span>
+        <span class="jb-leg jb-leg-red"><span class="jb-ldot" style="background:#ff3d57"></span>OB</span>
+        <span class="jb-leg jb-leg-amber"><span class="jb-ldot jb-ldot-pulse" style="background:#ffaa00"></span>✦ CONF</span>
       </div>
       <div class="jb-tf-pills">
         <button class="jb-tf-pill" id="jb-tf-15M" onclick="setBannerTF('15M')">15M</button>
@@ -404,36 +425,36 @@
       </div>
     </div>
   </div>
-  <div class="jb-ruler" id="jb-ruler-15m">
-    <span class="jb-ruler-label" style="color:#00e676">15M</span>
+  <div class="jb-ruler-row" id="jb-ruler-15m">
+    <span class="jb-rdot" style="background:#00e676"></span>
     <div class="jb-ruler-content">
       <div class="jb-ticks">
         <span class="jb-tick" style="color:#00e676">0</span><span class="jb-tick" style="color:#00e676">20</span><span class="jb-tick" style="color:#555">40</span><span class="jb-tick" style="color:#555">60</span><span class="jb-tick" style="color:#ff3d57">80</span><span class="jb-tick" style="color:#ff3d57">100</span>
       </div>
-      <div class="jb-bar">
-        <div class="jb-zg" style="width:20%"></div>
-        <div class="jb-zr" style="left:80%;width:20%"></div>
-        <div class="jb-thresh" style="left:20%"></div>
-        <div class="jb-thresh" style="left:80%"></div>
-        <div class="jb-mid"></div>
+      <div class="jb-bar-outer">
+        <div class="jb-chips-layer" id="jb-chips-15m"></div>
+        <div class="jb-bar">
+          <div class="jb-zg" style="width:20%"></div>
+          <div class="jb-zr" style="left:80%;width:20%"></div>
+          <div class="jb-mid"></div>
+        </div>
       </div>
-      <div class="jb-pin-row" id="jb-pins-15m"></div>
     </div>
   </div>
-  <div class="jb-ruler" id="jb-ruler-1h">
-    <span class="jb-ruler-label" style="color:#ffaa00">1H</span>
+  <div class="jb-ruler-row" id="jb-ruler-1h">
+    <span class="jb-rdot" style="background:#ffaa00"></span>
     <div class="jb-ruler-content">
       <div class="jb-ticks">
         <span class="jb-tick" style="color:#00e676">0</span><span class="jb-tick" style="color:#00e676">20</span><span class="jb-tick" style="color:#00e676">40</span><span class="jb-tick" style="color:#ff3d57">60</span><span class="jb-tick" style="color:#ff3d57">80</span><span class="jb-tick" style="color:#ff3d57">100</span>
       </div>
-      <div class="jb-bar">
-        <div class="jb-zg" style="width:40%"></div>
-        <div class="jb-zr" style="left:60%;width:40%"></div>
-        <div class="jb-thresh" style="left:40%"></div>
-        <div class="jb-thresh" style="left:60%"></div>
-        <div class="jb-mid"></div>
+      <div class="jb-bar-outer">
+        <div class="jb-chips-layer" id="jb-chips-1h"></div>
+        <div class="jb-bar">
+          <div class="jb-zg" style="width:40%"></div>
+          <div class="jb-zr" style="left:60%;width:40%"></div>
+          <div class="jb-mid"></div>
+        </div>
       </div>
-      <div class="jb-pin-row" id="jb-pins-1h"></div>
     </div>
   </div>
 </div>
