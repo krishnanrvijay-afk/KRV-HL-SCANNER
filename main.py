@@ -872,6 +872,16 @@ async def download_tradelog_csv():
     )
 
 
+class DismissAlertRequest(BaseModel):
+    symbol:    str
+    direction: str
+
+@app.post("/api/alert/dismiss")
+async def dismiss_alert(req: DismissAlertRequest):
+    _retire_alert(req.symbol, req.direction)
+    return {"status": "ok"}
+
+
 @app.delete("/api/alerts")
 async def clear_alerts_endpoint():
     app_state.alerts.clear()
