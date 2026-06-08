@@ -5,6 +5,7 @@ let activeTab    = 'grid';
 let lastScanAt   = null;
 let marketOpen   = false;
 let posTimers    = {};
+let bannerTF     = 'BOTH';
 
 const ADX_FADE_MAX = 60;
 
@@ -102,7 +103,6 @@ function render() {
   if (activeTab === 'pos')    renderPositionsTab();
   if (activeTab === 'log')    renderLogTab();
   if (marketOpen)             updateMarketPopover();
-  renderCockpit();
 }
 
 // ── Nav counts ────────────────────────────────────────────────────────────────
@@ -211,10 +211,18 @@ function buildCard(p, alerts, trades, changes) {
   const nearTrig  = !shortFull && !longFull && leadCount === 3;
   const hasAlert  = alerts.some(a => a.symbol === sym);
 
-  // ── Glow border state ────────────────────────────────────────────────────────
+  // Confluence: both TFs in trigger zone simultaneously
+  const longConf  = j15m < 20 && j1h < 40;
+  const shortConf = j15m > 80 && j1h > 60;
+
+  // ── Glow border state (confluence overrides all except in-trade) ─────────────
   let glowStyle;
   if (inTrade) {
     glowStyle = 'border:1px solid rgba(41,121,255,0.6);box-shadow:0 0 20px rgba(41,121,255,0.15),0 2px 8px rgba(0,0,0,0.6)';
+  } else if (longConf) {
+    glowStyle = 'border:1px solid rgba(0,230,118,0.9);box-shadow:0 0 28px rgba(0,230,118,0.25),0 2px 8px rgba(0,0,0,0.6)';
+  } else if (shortConf) {
+    glowStyle = 'border:1px solid rgba(255,61,87,0.9);box-shadow:0 0 28px rgba(255,61,87,0.25),0 2px 8px rgba(0,0,0,0.6)';
   } else if (hasAlert && shortFull) {
     glowStyle = 'border:1px solid rgba(255,61,87,0.8);box-shadow:0 0 20px rgba(255,61,87,0.2),0 2px 8px rgba(0,0,0,0.6)';
   } else if (hasAlert && longFull) {
@@ -252,7 +260,11 @@ function buildCard(p, alerts, trades, changes) {
   if (showShort) rows += dirRow('SHORT', j15m, j1h, rsi15m, askPct);
   if (showLong)  rows += dirRow('LONG',  j15m, j1h, rsi15m, bidPct);
 
+  const symCls = longConf ? 'card-sym card-sym-conf-long' : shortConf ? 'card-sym card-sym-conf-short' : 'card-sym';
+
   let pills = '';
+  if (longConf)  pills += `<span class="pill pill-conf-long">✦ CONFLUENCE LONG</span>`;
+  if (shortConf) pills += `<span class="pill pill-conf-short">✦ CONFLUENCE SHORT</span>`;
   if (inTrade)   pills += `<span class="pill pill-intrade">IN TRADE</span>`;
   if (cdS > 0)   pills += `<span class="pill pill-cd">CD-S ${fmtCd(cdS)}</span>`;
   if (cdL > 0)   pills += `<span class="pill pill-cd">CD-L ${fmtCd(cdL)}</span>`;
@@ -265,7 +277,7 @@ function buildCard(p, alerts, trades, changes) {
   return `<div class="pair-card" style="${glowStyle}">
     <div class="card-top">
       <div class="card-sym-block">
-        <span class="card-sym">${sym}</span>
+        <span class="${symCls}">${sym}</span>
         ${inlineDir}
       </div>
       <div class="card-right">
@@ -315,92 +327,71 @@ function dirRow(direction, j15m, j1h, rsi15m, depthPct) {
   </div>`;
 }
 
-// ── Cockpit bar ───────────────────────────────────────────────────────────────
-function renderCockpit() {
-  const pairs = STATE?.pair_states || [];
-
-  // Section 1: pair-name labels below the bar, stacked to avoid overlap
-  const labelRow = document.getElementById('ck-label-row');
-  const sorted = [...pairs]
-    .map(p => ({ sym: p.symbol, j: Math.min(99, Math.max(1, p.j15m || 50)) }))
-    .sort((a, b) => a.j - b.j);
-
-  const rowEdge = [];
-  const placed  = sorted.map(({ sym, j }) => {
-    let row = 0;
-    while (rowEdge[row] !== undefined && rowEdge[row] > j - 3) row++;
-    rowEdge[row] = j + 5;
-    return { sym, j, row };
+// ── Banner TF switcher ────────────────────────────────────────────────────────
+function setBannerTF(tf) {
+  bannerTF = tf;
+  ['15M', '1H', 'BOTH'].forEach(t => {
+    const el = document.getElementById(`jb-tf-${t}`);
+    if (!el) return;
+    el.className = 'jb-tf-pill' + (bannerTF === t ? ` jb-tf-active-${t}` : '');
   });
-
-  const rowH   = 14;
-  const maxRow = placed.reduce((m, p) => Math.max(m, p.row), 0);
-  labelRow.style.height = `${(maxRow + 1) * rowH}px`;
-  labelRow.innerHTML = placed.map(({ sym, j, row }) => {
-    const col = j < 20 ? '#00ff88'
-              : j < 35 ? '#4d8a4d'
-              : j < 65 ? '#cccccc'
-              : j < 80 ? '#8a4d4d'
-              : '#ff4444';
-    return `<div class="ck-pair-label" style="left:${j}%;top:${row * rowH}px;color:${col};">${sym}</div>`;
-  }).join('');
-
-  // Section 2: Near trigger (exactly 3/4 gates on leading direction)
-  const nearList = [];
-  for (const p of pairs) {
-    const sg = [p.j15m > 80, p.j1h > 60, p.rsi15m > 65, p.ask_pct >= 55].filter(Boolean).length;
-    const lg = [p.j15m < 20, p.j1h < 40, p.rsi15m < 35, p.bid_pct >= 55].filter(Boolean).length;
-    if (sg === 3 && sg > lg) nearList.push(`<span style="color:#ff4444">${p.symbol}</span> SHORT`);
-    if (lg === 3 && lg > sg) nearList.push(`<span style="color:#00ff88">${p.symbol}</span> LONG`);
-  }
-  const nearEl = document.getElementById('ck-near');
-  nearEl.innerHTML = nearList.length
-    ? nearList.join('<span style="color:#333"> · </span>')
-    : `<span style="color:#333">none</span>`;
+  const r15m = document.getElementById('jb-ruler-15m');
+  const r1h  = document.getElementById('jb-ruler-1h');
+  if (r15m) r15m.style.display = (bannerTF === '1H')  ? 'none' : '';
+  if (r1h)  r1h.style.display  = (bannerTF === '15M') ? 'none' : '';
+  renderBanner();
 }
 
-// ── J15M Opportunity Banner ───────────────────────────────────────────────────
+// ── J15M Dual-TF Opportunity Banner ──────────────────────────────────────────
 function renderBanner() {
-  const pairs  = STATE?.pair_states || [];
-  const pinRow = document.getElementById('jb-pin-row');
-  if (!pinRow) return;
+  const pairs = STATE?.pair_states || [];
+  if (!pairs.length) return;
 
-  if (!pairs.length) {
-    pinRow.style.height = '30px';
-    pinRow.innerHTML = '';
-    return;
+  function fillRuler(containerId, tfKey) {
+    const container = document.getElementById(containerId);
+    if (!container || container.style.display === 'none') return;
+
+    const ROW_H = 30;
+    const items = [...pairs].map(p => {
+      const raw = tfKey === '15m' ? (p.j15m || 50) : (p.j1h || 50);
+      const j   = Math.min(98, Math.max(2, +raw));
+      const longConf  = (p.j15m || 0) < 20 && (p.j1h || 0) < 40;
+      const shortConf = (p.j15m || 0) > 80 && (p.j1h || 0) > 60;
+      return { sym: p.symbol, j, longConf, shortConf };
+    }).sort((a, b) => a.j - b.j);
+
+    const rowEdge = [];
+    const placed = items.map(item => {
+      let row = 0;
+      while (rowEdge[row] !== undefined && rowEdge[row] > item.j - 5) row++;
+      rowEdge[row] = item.j + 5;
+      return { ...item, row };
+    });
+
+    const maxRow = placed.reduce((m, p) => Math.max(m, p.row), 0);
+    container.style.height = `${(maxRow + 1) * ROW_H + 6}px`;
+
+    container.innerHTML = placed.map(({ sym, j, row, longConf, shortConf }) => {
+      const isConf = longConf || shortConf;
+      const col = tfKey === '15m'
+        ? (j < 20 ? '#00e676' : j < 35 ? 'rgba(0,230,118,0.55)' : j < 65 ? '#ccc' : j < 80 ? 'rgba(255,61,87,0.55)' : '#ff3d57')
+        : (j < 35 ? '#00e676' : j < 40 ? 'rgba(0,230,118,0.55)' : j < 60 ? '#ccc' : j < 65 ? 'rgba(255,61,87,0.55)' : '#ff3d57');
+      const lineH     = row * ROW_H + 5;
+      const pulseCls  = isConf ? ' jb-pin-conf' : '';
+      const confBadge = isConf
+        ? `<div class="jb-conf-badge ${longConf ? 'jb-conf-long' : 'jb-conf-short'}" style="top:${lineH + 22}px">${longConf ? 'LONG' : 'SHORT'}</div>`
+        : '';
+      return `<div class="jb-pin" style="left:${j.toFixed(1)}%">
+        <div class="jb-pin-line" style="height:${lineH}px"></div>
+        <div class="jb-pin-name${pulseCls}" style="top:${lineH}px;color:${col}">${sym}${isConf ? '✦' : ''}</div>
+        <div class="jb-pin-val" style="top:${lineH + 12}px;color:${col}">${j.toFixed(0)}</div>
+        ${confBadge}
+      </div>`;
+    }).join('');
   }
 
-  const ROW_H = 30;
-  const sorted = [...pairs]
-    .map(p => ({ sym: p.symbol, j: Math.min(98, Math.max(2, +(p.j15m || 50))) }))
-    .sort((a, b) => a.j - b.j);
-
-  // Stack pairs within 5 J15M points into vertical rows
-  const rowEdge = [];
-  const placed = sorted.map(({ sym, j }) => {
-    let row = 0;
-    while (rowEdge[row] !== undefined && rowEdge[row] > j - 5) row++;
-    rowEdge[row] = j + 5;
-    return { sym, j, row };
-  });
-
-  const maxRow = placed.reduce((m, p) => Math.max(m, p.row), 0);
-  pinRow.style.height = `${(maxRow + 1) * ROW_H + 6}px`;
-
-  pinRow.innerHTML = placed.map(({ sym, j, row }) => {
-    const col = j < 20 ? '#00ff88'
-              : j < 35 ? '#4d8a4d'
-              : j < 65 ? '#ccc'
-              : j < 80 ? '#8a4d4d'
-              : '#ff4444';
-    const lineH = row * ROW_H + 6;
-    return `<div class="jb-pin" style="left:${j.toFixed(1)}%">
-      <div class="jb-pin-line" style="height:${lineH}px"></div>
-      <div class="jb-pin-name" style="top:${lineH}px;color:${col}">${sym}</div>
-      <div class="jb-pin-val"  style="top:${lineH + 13}px;color:${col}">${j.toFixed(0)}</div>
-    </div>`;
-  }).join('');
+  fillRuler('jb-pins-15m', '15m');
+  fillRuler('jb-pins-1h',  '1h');
 }
 
 // ── Alerts tab ────────────────────────────────────────────────────────────────
