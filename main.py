@@ -463,7 +463,11 @@ async def _do_open_trade(
         "bid_pct":    alert_data.get("bid_pct")   if alert_data else None,
         "ask_pct":    alert_data.get("ask_pct")   if alert_data else None,
         "be_price":   round(entry * 1.001, 6) if direction == "LONG" else round(entry * 0.999, 6),
-        "tp1_hit":    False,
+        "tp1_hit":       False,
+        "partial_hit":   False,
+        "is_score10":    alert_data.get("is_score10", False) if alert_data else False,
+        "partial_price": alert_data.get("partial_price")     if alert_data else None,
+        "session":       alert_data.get("session", "")       if alert_data else "",
         "extreme_price": None,
     }
 
@@ -545,9 +549,10 @@ async def _scan_loop():
                             "[WARNING] LIVE AUTO-ENTRY ACTIVE — "
                             "LIVE_MANUAL_ENTRY_ONLY is disabled."
                         )
+                    _margin = alert.get("margin", MARGIN_PER_TRADE)
                     trade, err = await _do_open_trade(
                         sym, dir_,
-                        MARGIN_PER_TRADE, alert["leverage"],
+                        _margin, alert["leverage"],
                         alert_data=alert,
                         exchange="HL",
                     )
@@ -556,7 +561,7 @@ async def _scan_loop():
                             f"[AUTO TRADE] {sym} {dir_} opened "
                             f"tier={alert.get('tier')} lev={alert.get('leverage')}x "
                             f"entry={trade.get('entry_price')} sl={trade.get('sl_price')} "
-                            f"margin=${MARGIN_PER_TRADE:.0f}"
+                            f"margin=${_margin:.0f}"
                         )
                     elif err:
                         print(f"[AUTO TRADE] {sym} {dir_} skipped: {err}")
@@ -605,6 +610,29 @@ def _compute_r(pnl: float, trade: dict) -> float:
     margin      = trade.get("margin", MARGIN_PER_TRADE)
     dollar_risk = margin * lev * (sl_dist / entry) if entry else 0
     return round(pnl / dollar_risk, 2) if dollar_risk else 0.0
+
+
+def _do_hc_partial_close(key: str, trade: dict, exit_price: float):
+    """HC Score-10: close 1/3 at 1.5R, move SL to entry (breakeven)."""
+    sym, direction = trade["symbol"], trade["direction"]
+    full_size = trade.get("remaining_size", trade["size"])
+    close_sz  = full_size / 3
+    entry     = trade["entry_price"]
+    pnl       = (exit_price - entry) * close_sz if direction == "LONG" \
+                else (entry - exit_price) * close_sz
+    r         = _compute_r(pnl, trade)
+    _append_trade_log(trade, exit_price, "HC_PARTIAL_1.5R", pnl, r)
+    _update_daily_pnl(pnl)
+    trade["remaining_size"] = full_size - close_sz
+    trade["partial_hit"]    = True
+    trade["sl_price"]       = entry  # move SL to breakeven
+    old_margin              = trade.get("margin", MARGIN_PER_TRADE)
+    trade["margin"]         = old_margin * 2 / 3
+    app_state.open_trades[key]    = trade
+    app_state.margin_deployed     = max(0.0, app_state.margin_deployed - old_margin / 3)
+    print(f"[HC PARTIAL] {sym} {direction} 1/3 closed at {exit_price:.6f} "
+          f"pnl=${pnl:.2f} r={r:+.2f}R — SL moved to breakeven {entry:.6f}")
+    _save_state()
 
 
 def _do_close_trade(key: str, trade: dict, exit_price: float, reason: str):
@@ -701,6 +729,15 @@ async def _exit_monitor_loop():
                     _do_close_trade(key, trade, current, "SL")
                     continue
 
+                # ── HC early partial close at 1.5R → SL to breakeven ────────────
+                if (trade.get("is_score10") and not trade.get("partial_hit")
+                        and trade.get("partial_price")):
+                    _pp     = trade["partial_price"]
+                    _pp_hit = (is_short and current <= _pp) or (not is_short and current >= _pp)
+                    if _pp_hit:
+                        _do_hc_partial_close(key, trade, current)
+                        continue
+
                 # ── TP1 (always checked first — partial close, half position) ────
                 if not tp1_hit and tp1_price:
                     tp1_reached = (is_short and current <= tp1_price) or \
@@ -722,6 +759,20 @@ async def _exit_monitor_loop():
                     if tp2_reached:
                         _do_close_trade(key, trade, current, "TP2")
                         continue
+
+                # HC trailing SL after tp1_hit: lock 1.5R minimum profit
+                if trade.get("is_score10") and tp1_hit:
+                    _sl_d = trade.get("sl_dist") or 0
+                    if _sl_d > 0:
+                        _ent   = trade["entry_price"]
+                        _lock  = (_ent + 1.5 * _sl_d if not is_short else _ent - 1.5 * _sl_d)
+                        _ep    = trade.get("extreme_price") or current
+                        _trail = (_ep - 2.0 * _sl_d if not is_short else _ep + 2.0 * _sl_d)
+                        _nsl   = (max(_lock, _trail) if not is_short else min(_lock, _trail))
+                        if sl_price and ((not is_short and _nsl > sl_price) or
+                                        (is_short and _nsl < sl_price)):
+                            trade["sl_price"] = round(_nsl, 6)
+                            app_state.open_trades[key]["sl_price"] = round(_nsl, 6)
 
                 # No exit this cycle
                 print(f"[EXIT CHECK] {sym} {direction} price={current} "
