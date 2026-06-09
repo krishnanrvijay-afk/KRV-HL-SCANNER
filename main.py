@@ -4,6 +4,8 @@ import io
 import logging
 import os
 import time
+import threading
+import requests
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -44,6 +46,12 @@ from scanner import (
     compute_market_health, get_session_name,
 )
 import scanner as _scanner_mod  # direct access to _cooldowns dict for persistence
+
+# ── Telegram config ────────────────────────────────────────────
+TELEGRAM_BOT_TOKEN  = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID    = int(os.environ.get("TELEGRAM_CHAT_ID", "0") or "0")
+TELEGRAM_ENABLED    = os.environ.get("TELEGRAM_ENABLED", "true").lower() == "true"
+_pending_reminders: dict = {}
 
 # ── Global safety state ────────────────────────────────────────────────────────
 consecutive_losses:     int   = 0
@@ -556,6 +564,170 @@ async def _do_open_trade(
     return trade, None
 
 
+# ━━ Telegram alerting ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+_TREND_EMOJI = {
+    "Strong Bull": "🚀",
+    "Bullish":     "📈",
+    "Neutral":     "➡️",
+    "Bearish":     "📉",
+    "Strong Bear": "🔻",
+}
+
+
+def _fmt_p(v: float) -> str:
+    if v >= 1000: return f"{v:,.2f}"
+    if v >= 1:    return f"{v:.4f}"
+    return f"{v:.6f}"
+
+
+def _tg_post(msg: str) -> None:
+    """POST to Telegram in a daemon thread — never blocks the scan loop."""
+    def _send(text: str, parse_mode: str) -> None:
+        url  = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+        data = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": parse_mode}
+        try:
+            requests.post(url, json=data, timeout=10)
+        except Exception as _e:
+            print(f"[TG] send error: {_e}")
+
+    full_msg = "🟣 HL BOUNCE\n" + msg
+    def _worker() -> None:
+        try:
+            _send(full_msg, "HTML")
+        except Exception:
+            try:
+                import re
+                plain = re.sub(r"<[^>]+>", "", full_msg)
+                _send(plain, "")
+            except Exception as _e2:
+                print(f"[TG] fallback error: {_e2}")
+    threading.Thread(target=_worker, daemon=True).start()
+
+
+def send_telegram(alert: dict) -> None:
+    """Build and send the HTML signal message for a new alert."""
+    sym       = alert.get("symbol", "")
+    direction = alert.get("direction", "LONG")
+    tier      = alert.get("tier", "REGULAR")
+    score     = alert.get("score", 0)
+    trend     = alert.get("trend", "Neutral")
+    j15m      = float(alert.get("j15m", 0) or 0)
+    j1h       = float(alert.get("j1h",  0) or 0)
+    adx       = float(alert.get("adx1h", 0) or 0)
+    bid_pct   = float(alert.get("bid_pct", 0) or 0)
+    ask_pct   = float(alert.get("ask_pct", 0) or 0)
+    entry     = float(alert.get("entry_price", 0) or 0)
+    sl        = float(alert.get("sl_price", 0) or 0)
+    tp1       = float(alert.get("tp1_price", 0) or 0)
+    tp2       = float(alert.get("tp2_price", 0) or 0)
+    leverage  = int(alert.get("leverage", 5) or 5)
+    margin    = float(alert.get("margin", MARGIN_PER_TRADE) or MARGIN_PER_TRADE)
+    session   = alert.get("session", "—") or "—"
+
+    tier_map    = {"HIGH_PROB": "✦ HIGH PROB", "STRONG": "◆ STRONG"}
+    tier_label  = tier_map.get(tier, "● REGULAR")
+    trend_emoji = _TREND_EMOJI.get(trend, "➡️")
+
+    sess_lo = session.lower()
+    if "asia" in sess_lo:                          session_emoji = "🌏"
+    elif "london" in sess_lo:                      session_emoji = "🌍"
+    elif "ny" in sess_lo or "new york" in sess_lo: session_emoji = "🌎"
+    else:                                          session_emoji = "🌑"
+
+    is_long  = direction == "LONG"
+    size     = (margin * leverage / entry) if entry else 0
+    tp1_pnl  = ((tp1 - entry) * size) if is_long else ((entry - tp1) * size)
+    tp2_pnl  = ((tp2 - entry) * size) if is_long else ((entry - tp2) * size)
+    sl_pnl   = ((sl  - entry) * size) if is_long else ((entry - sl)  * size)
+    sl_dist  = abs(entry - sl)
+    d_risk   = margin * leverage * (sl_dist / entry) if entry else margin
+    rr       = round(abs(tp1_pnl) / d_risk, 2) if d_risk else 0
+    liq      = (entry - margin / size) if (is_long and size) else \
+               (entry + margin / size) if size else 0
+    adx_lbl  = "Trending" if adx >= 25 else "Ranging"
+    dir_lbl  = "Open Long" if is_long else "Open Short"
+    ts       = datetime.now(_EDT).strftime("%Y-%m-%d %H:%M EDT")
+
+    parts = [
+        f"<b>{tier_label} {direction} — {sym}</b>",
+        f"Score: {score}/4",
+        f"Trend: {trend_emoji} {trend}",
+        f"J15M: {j15m:.1f}",
+        f"J1H: {j1h:.1f}",
+        "📊 ADX: " + f"{adx:.1f} — {adx_lbl}",
+        f"Depth: B{bid_pct:.0f}% / S{ask_pct:.0f}%",
+        f"Session: {session_emoji} {session} +0",
+        "━━━ ORDER SETUP ━━━",
+        f"Direction:   {dir_lbl}",
+        f"Entry:       {_fmt_p(entry)}",
+        f"Cost:        {margin:.0f} USDT",
+        f"Leverage:    {leverage}x (Isolated)",
+        f"TP1:         {_fmt_p(tp1)}",
+        f"TP2:         {_fmt_p(tp2)}",
+        f"SL:          {_fmt_p(sl)}",
+        "━━━ RISK SUMMARY ━━━",
+        "Est. Profit TP1: $" + f"{tp1_pnl:.2f}" + " net",
+        "Est. Profit TP2: $" + f"{tp2_pnl:.2f}" + " net",
+        "Max Loss:        $" + f"{sl_pnl:.2f}"  + " net",
+        f"R:R:             1:{rr}",
+        f"Liq Price:       ~{_fmt_p(liq)}",
+        "⏱ " + ts,
+    ]
+    _tg_post("\n".join(parts))
+
+
+def send_reminder(alert: dict, cancel_event: threading.Event) -> None:
+    """Sleep 30 min (in chunks), then send a reminder unless cancelled."""
+    sym       = alert.get("symbol", "")
+    direction = alert.get("direction", "LONG")
+    sl        = float(alert.get("sl_price", 0) or 0)
+    tp1       = float(alert.get("tp1_price", 0) or 0)
+    tp2       = float(alert.get("tp2_price", 0) or 0)
+    fired_at  = alert.get("fired_at", int(time.time()))
+    orig_time = datetime.fromtimestamp(fired_at, tz=_EDT).strftime("%H:%M EDT")
+
+    elapsed = 0
+    while elapsed < 1800 and not cancel_event.is_set():
+        time.sleep(10)
+        elapsed += 10
+
+    if cancel_event.is_set():
+        return
+
+    live_price = app_state.prices.get(sym, 0)
+    key        = f"{sym}{direction}"
+
+    if key in app_state.open_trades:
+        status = "✅ ACTIVE"
+    else:
+        closed = next(
+            (e for e in reversed(app_state.trade_log)
+             if e["symbol"] == sym and e["direction"] == direction), None
+        )
+        if closed:
+            reason = closed.get("exit_reason", "")
+            if reason == "SL":
+                status = "🔴 SL Breached"
+            elif reason in ("TP2", "HC_PARTIAL_1.5R"):
+                status = "✅ TP2 Reached"
+            else:
+                status = "Closed (" + reason + ")"
+        else:
+            status = "✅ ACTIVE"
+
+    ts  = datetime.now(_EDT).strftime("%Y-%m-%d %H:%M EDT")
+    msg = (
+        "⏰ REMINDER — " + sym + " " + direction + "\n"
+        "Alert sent 30 min ago at " + orig_time + "\n"
+        "Current price: " + _fmt_p(live_price) + "\n"
+        "SL: " + _fmt_p(sl) + " | TP1: " + _fmt_p(tp1) + " | TP2: " + _fmt_p(tp2) + "\n"
+        "Status: " + status + "\n"
+        "⏱ " + ts
+    )
+    _tg_post(msg)
+
+
 # ── Background loops ──────────────────────────────────────────────────────────
 
 async def _scan_loop():
@@ -603,6 +775,15 @@ async def _scan_loop():
                 if existing:
                     app_state.alerts.remove(existing)
                 app_state.alerts.insert(0, alert)
+
+                # Telegram alert + 30-min reminder
+                if TELEGRAM_ENABLED:
+                    threading.Thread(target=lambda a=alert: send_telegram(a), daemon=True).start()
+                    ev = threading.Event()
+                    if sym in _pending_reminders:
+                        _pending_reminders[sym].set()
+                    _pending_reminders[sym] = ev
+                    threading.Thread(target=lambda a=alert, e=ev: send_reminder(a, e), daemon=True).start()
 
                 # Auto-entry gate: blocked when live and LIVE_MANUAL_ENTRY_ONLY is True
                 if not PAPER_MODE and LIVE_MANUAL_ENTRY_ONLY:
@@ -728,6 +909,15 @@ def _do_close_trade(key: str, trade: dict, exit_price: float, reason: str):
 
     print(f"[EXIT] {sym} {direction} closed at {exit_price} reason={reason} "
           f"pnl=${pnl:.2f} r={r:+.2f}R")
+    if TELEGRAM_ENABLED:
+        def _exit_tg(r=reason, s=sym, d=direction, ep=exit_price, p=pnl):
+            if r == "SL":
+                _tg_post("🔴 EXIT — " + s + " " + d + " — SL hit at " + _fmt_p(ep) + ". Final P&L: $" + f"{p:.2f}")
+            elif r == "TP2":
+                _tg_post("✅ TP2 HIT — " + s + " " + d + " — full close at " + _fmt_p(ep) + ". Final P&L: $" + f"{p:.2f}")
+            else:
+                _tg_post("📋 EXIT (" + r + ") — " + s + " " + d + " — closed at " + _fmt_p(ep) + ". P&L: $" + f"{p:.2f}")
+        threading.Thread(target=_exit_tg, daemon=True).start()
     if PAPER_MODE:
         asyncio.create_task(_update_paper_trade_close(trade, exit_price, reason, pnl))
     _save_state()
@@ -761,6 +951,10 @@ def _do_partial_close_tp1(key: str, trade: dict, exit_price: float):
 
     print(f"[EXIT] {sym} {direction} TP1 partial close at {exit_price} "
           f"half_pnl=${pnl:.2f} r={r:+.2f}R — remainder open watching TP2")
+    if TELEGRAM_ENABLED:
+        def _tp1_tg(s=sym, d=direction, ep=exit_price, p=pnl):
+            _tg_post("✅ TP1 HIT — " + s + " " + d + " — partial close at " + _fmt_p(ep) + ". P&L so far: $" + f"{p:.2f}")
+        threading.Thread(target=_tp1_tg, daemon=True).start()
     _save_state()
 
 
