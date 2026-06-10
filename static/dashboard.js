@@ -1516,7 +1516,7 @@ function _ovGateBarsHtml(d, dir) {
         <div class="pov-gzr" style="left:75%;width:25%"></div>
         <div class="pov-gth" style="left:25%"></div><div class="pov-gth" style="left:75%"></div>
         <div class="pov-gcur" id="pov-gc-2k" style="left:${Math.min(99,stochK).toFixed(1)}%;background:${stochKC}"></div>
-        <div id="pov-gc-2d" style="position:absolute;top:50%;transform:translate(-50%,-50%);left:${Math.min(99,stochD).toFixed(1)}%;width:7px;height:7px;border-radius:50%;border:2px solid #888;background:transparent;pointer-events:none"></div>
+        <div id="pov-gc-2d" style="position:absolute;top:50%;transform:translate(-50%,-50%);left:${Math.min(99,stochD).toFixed(1)}%;width:10px;height:10px;border-radius:2px;border:1px solid ${Math.abs(stochK-stochD)<5?'#00ff88':'rgba(136,136,136,0.7)'};background:transparent;pointer-events:none;box-shadow:${Math.abs(stochK-stochD)<5?'0 0 5px rgba(0,255,136,0.4)':'none'}"></div>
       </div>
       <span class="pov-gv" id="pov-gv-2" style="color:${stochKC}">${stochK.toFixed(0)}/${stochD.toFixed(0)}</span>
     </div>
@@ -1814,7 +1814,12 @@ function _ovUpdate(pn, d) {
   const gc2k = document.getElementById('pov-gc-2k');
   if (gc2k) { gc2k.style.left = `${Math.min(99, stochKV).toFixed(1)}%`; gc2k.style.background = stochKC; }
   const gc2d = document.getElementById('pov-gc-2d');
-  if (gc2d) gc2d.style.left = `${Math.min(99, stochDV).toFixed(1)}%`;
+    if (gc2d) {
+      gc2d.style.left = `${Math.min(99, stochDV).toFixed(1)}%`;
+      const stochEclipse = Math.abs(stochKV - stochDV) < 5;
+      gc2d.style.border = stochEclipse ? '1px solid #00ff88' : '1px solid rgba(136,136,136,0.7)';
+      gc2d.style.boxShadow = stochEclipse ? '0 0 5px rgba(0,255,136,0.4)' : 'none';
+    }
   const gv2 = document.getElementById('pov-gv-2');
   if (gv2) { gv2.textContent = `${stochKV.toFixed(0)}/${stochDV.toFixed(0)}`; gv2.style.color = stochKC; }
   const gd2 = document.getElementById('pov-gd-2');
