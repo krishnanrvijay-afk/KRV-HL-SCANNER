@@ -24,7 +24,7 @@ if not _scanner_log.handlers:
 _scanner_log.setLevel(logging.INFO)
 _scanner_log.propagate = False
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Query
 from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -1488,7 +1488,40 @@ async def clear_alerts_endpoint():
 
 
 @app.delete("/api/tradelog")
-async def clear_tradelog():
+async def clear_tradelog(
+    from_ts: Optional[int] = Query(None, description="Unix epoch seconds — start of date range (inclusive)"),
+    to_ts:   Optional[int] = Query(None, description="Unix epoch seconds — end of date range (inclusive)"),
+):
+    """With from_ts+to_ts: deletes only log entries in that range (no state reset).
+    Without params: full clear — force-closes open trades, resets all state."""
+
+    if from_ts is not None and to_ts is not None:
+        # ── Date-ranged delete — only remove matching closed log entries ──
+        removed = [
+            r for r in app_state.trade_log
+            if from_ts <= (r.get("timestamp_closed") or 0) <= to_ts
+        ]
+        app_state.trade_log = [
+            r for r in app_state.trade_log
+            if not (from_ts <= (r.get("timestamp_closed") or 0) <= to_ts)
+        ]
+        # Supabase date-range delete
+        sb = _get_supabase()
+        if sb is not None:
+            try:
+                from_iso = datetime.fromtimestamp(from_ts, tz=timezone.utc).isoformat()
+                to_iso   = datetime.fromtimestamp(to_ts,   tz=timezone.utc).isoformat()
+                sb.table("trade_log").delete() \
+                    .gte("close_time", from_iso) \
+                    .lte("close_time", to_iso) \
+                    .eq("exchange", "HL") \
+                    .execute()
+            except Exception as _e:
+                print(f"[CLEAR] Supabase date-range delete error: {_e}")
+        print(f"[CLEAR] {len(removed)} log entries removed for range {from_ts}–{to_ts}")
+        return {"status": "ok", "entries_removed": len(removed)}
+
+    # ── Full clear (no date params) — existing behaviour unchanged ──
     global consecutive_losses, circuit_breaker_active, daily_pnl, trading_halted_today
 
     count = len(app_state.open_trades)

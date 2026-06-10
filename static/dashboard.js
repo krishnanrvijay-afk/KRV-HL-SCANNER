@@ -1187,19 +1187,59 @@ function renderPerfPanel(log) {
 }
 
 // ── Log tab ───────────────────────────────────────────────────────────────────
+// ── Date-filter helpers ─────────────────────────────────────────────────────────────────────────────
+function _localDateStr(d) {
+  return d.getFullYear() + '-' +
+    String(d.getMonth()+1).padStart(2,'0') + '-' +
+    String(d.getDate()).padStart(2,'0');
+}
+function _getYesterday() {
+  const d = new Date(); d.setDate(d.getDate()-1); return _localDateStr(d);
+}
+function _getDateFilter() {
+  const fromEl = document.getElementById('log-date-from');
+  const toEl   = document.getElementById('log-date-to');
+  if (fromEl && !fromEl.dataset.init) {
+    const yd = _getYesterday();
+    fromEl.value = yd; fromEl.dataset.init = '1';
+    toEl.value   = yd; toEl.dataset.init   = '1';
+  }
+  const fromStr = fromEl ? fromEl.value : '';
+  const toStr   = toEl   ? toEl.value   : '';
+  const fromMs  = fromStr ? new Date(fromStr + 'T00:00:00').getTime() : null;
+  const toMs    = toStr   ? new Date(toStr   + 'T23:59:59').getTime() : null;
+  const fromTs  = fromMs ? Math.floor(fromMs / 1000) : null;
+  const toTs    = toMs   ? Math.floor(toMs   / 1000) : null;
+  return { fromMs, toMs, fromTs, toTs, fromStr, toStr };
+}
+
 function renderLogTab() {
   const log = STATE.trade_log || [];
-  document.getElementById('log-count').textContent = `${log.length} trade${log.length!==1?'s':''}`;
+  const { fromMs, toMs } = _getDateFilter();
+
+  const filtered = log.filter(r => {
+    const ts = (r.timestamp_closed || 0) * 1000;
+    if (fromMs !== null && ts < fromMs) return false;
+    if (toMs   !== null && ts > toMs)   return false;
+    return true;
+  });
+
+  const countTxt = filtered.length === log.length
+    ? `${log.length} trade${log.length!==1?'s':''}`
+    : `${filtered.length} of ${log.length} trade${log.length!==1?'s':''}`;
+  document.getElementById('log-count').textContent = countTxt;
   renderStatsPanel(log);
   renderPerfPanel(log);
 
-  if (!log.length) {
+  if (!filtered.length) {
     document.getElementById('log-body').className = 'log-empty';
-    document.getElementById('log-body').innerHTML = 'No closed trades yet';
+    document.getElementById('log-body').innerHTML = log.length
+      ? 'No trades in selected date range'
+      : 'No closed trades yet';
     return;
   }
 
-  const rows = [...log].reverse().map(r => {
+  const rows = [...filtered].reverse().map(r => {
     const reasonCls = r.exit_reason === 'TP1'  ? 'reason-tp1'
                     : r.exit_reason === 'TP2'  ? 'reason-tp2'
                     : r.exit_reason === 'SL'   ? 'reason-sl' : 'reason-manual';
@@ -1220,7 +1260,7 @@ function renderLogTab() {
       <td style="color:#ff4444;">${fmtPrice(r.sl_price)}</td>
       <td style="color:#00ff88;">${fmtPrice(r.tp1_price)}</td>
       <td class="${reasonCls}">${r.exit_reason||'—'}</td>
-      <td style="color:${pnlColor};font-weight:700;">${(r.pnl_usd||0)>=0?'+':''}$${(r.pnl_usd||0).toFixed(2)}</td>
+      <td style="color:${pnlColor};font-weight:700;">${(r.pnl_usd||0)>=0?'+':''}${(r.pnl_usd||0).toFixed(2)}</td>
       <td style="color:${rColor};font-weight:700;">${(r.r_value||0)>=0?'+':''}${(r.r_value||0).toFixed(2)}R</td>
       <td style="color:#555;">${openTime}</td>
       <td style="color:#555;">${closeTime}</td>
@@ -1277,17 +1317,33 @@ async function clearAlerts() {
   } catch (e) { alert('Request failed'); }
 }
 
-async function exportCsv() { window.location.href = '/api/tradelog/csv'; }
+async function exportCsv() {
+  const log = STATE.trade_log || [];
+  const { fromMs, toMs, fromStr, toStr } = _getDateFilter();
+  const filtered = log.filter(r => {
+    const ts = (r.timestamp_closed || 0) * 1000;
+    if (fromMs !== null && ts < fromMs) return false;
+    if (toMs   !== null && ts > toMs)   return false;
+    return true;
+  });
+  const fields = ['timestamp_opened','timestamp_closed','symbol','direction','score','adx1h','tier','entry_price','sl_price','tp1_price','tp2_price','exit_price','exit_reason','pnl_usd','r_value','duration_seconds','exchange','paper'];
+  const csvRows = [fields.join(',')].concat(filtered.map(r => fields.map(f => JSON.stringify(r[f] ?? '')).join(',')));
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+  const a    = document.createElement('a');
+  a.href     = URL.createObjectURL(blob);
+  a.download = `trade_log_${fromStr||'all'}_to_${toStr||'all'}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 
 async function clearLog() {
-  const trades  = STATE?.open_trades || {};
-  const hasOpen = Object.keys(trades).length > 0;
-  const msg = hasOpen
-    ? `${Object.keys(trades).length} open position(s) will be force-closed. Clear everything?`
-    : 'Clear all trade log entries?';
-  if (!confirm(msg)) return;
+  const { fromTs, toTs, fromStr, toStr } = _getDateFilter();
+  const rangeLabel = (fromStr && toStr) ? `${fromStr} to ${toStr}` : 'all dates';
+  if (!confirm(`Clear trade log entries for ${rangeLabel}?`)) return;
   try {
-    const r = await fetch('/api/tradelog', { method: 'DELETE' });
+    let url = '/api/tradelog';
+    if (fromTs !== null && toTs !== null) url += `?from_ts=${fromTs}&to_ts=${toTs}`;
+    const r = await fetch(url, { method: 'DELETE' });
     if (!r.ok) { alert('Clear failed'); return; }
     fetchState();
   } catch (e) { alert('Request failed'); }
