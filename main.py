@@ -419,6 +419,8 @@ def _append_trade_log(trade: dict, exit_price: float, reason: str, pnl: float, r
                 "open_time":        open_iso,
                 "close_time":       close_iso,
                 "duration_seconds": now_ts - opened_at,
+                "stoch_k":          trade.get("stoch_k"),
+                "stoch_d":          trade.get("stoch_d"),
             }).execute()
         except Exception as _e:
             print(f"[PERSIST] trade_log insert error: {_e}")
@@ -450,6 +452,8 @@ async def _save_paper_trade(trade: dict, alert: dict):
             "trend":         alert.get("trend"),
             "j_value":       alert.get("j15m"),
             "rsi":           alert.get("rsi15m"),
+            "stoch_k":       alert.get("stoch_k"),
+            "stoch_d":       alert.get("stoch_d"),
             "fired_at":      datetime.fromtimestamp(
                                  trade.get("opened_at", int(time.time())), tz=timezone.utc
                              ).isoformat(),
@@ -546,6 +550,8 @@ async def _do_open_trade(
         "j15m":       alert_data.get("j15m")      if alert_data else None,
         "j1h":        alert_data.get("j1h")       if alert_data else None,
         "rsi15m":     alert_data.get("rsi15m")    if alert_data else None,
+        "stoch_k":    alert_data.get("stoch_k")    if alert_data else None,
+        "stoch_d":    alert_data.get("stoch_d")    if alert_data else None,
         "bid_pct":    alert_data.get("bid_pct")   if alert_data else None,
         "ask_pct":    alert_data.get("ask_pct")   if alert_data else None,
         "be_price":   round(entry * 1.001, 6) if direction == "LONG" else round(entry * 0.999, 6),

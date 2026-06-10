@@ -258,7 +258,11 @@ function buildCard(p, alerts, trades, changes) {
   const price  = p.price   || 0;
   const j15m   = p.j15m    || 0;
   const j1h    = p.j1h     || 0;
-  const rsi15m = p.rsi15m  || 0;
+  const rsi15m    = p.rsi15m      || 0;
+  const stochK     = p.stoch_k      || 0;
+  const stochD     = p.stoch_d      || 0;
+  const stochKPrev = p.stoch_k_prev != null ? +p.stoch_k_prev : stochK;
+  const stochDPrev = p.stoch_d_prev != null ? +p.stoch_d_prev : stochD;
   const bidPct = p.bid_pct || 0;
   const askPct = p.ask_pct || 0;
   const adx1h  = p.adx1h   || 0;
@@ -280,8 +284,8 @@ function buildCard(p, alerts, trades, changes) {
                  : '#ffffff';
 
   // Gate counts
-  const shortGates = [j15m > 80, j1h > 60, rsi15m > 65, askPct >= 55];
-  const longGates  = [j15m < 20, j1h < 40, rsi15m < 35, bidPct >= 55];
+  const shortGates = [j15m > 80, j1h > 60, stochK > 75 && stochKPrev >= stochDPrev && stochK < stochD, askPct >= 55];
+  const longGates  = [j15m < 20, j1h < 40, stochK < 25 && stochKPrev <= stochDPrev && stochK > stochD, bidPct >= 55];
   const shortCount = shortGates.filter(Boolean).length;
   const longCount  = longGates.filter(Boolean).length;
   const shortFull  = shortCount === 4;
@@ -348,8 +352,8 @@ function buildCard(p, alerts, trades, changes) {
 
   // ── Gate rows: RSI + DEPTH only (J moved to symbol line) ─────────────────────
   let rows = '';
-  if (showShort) rows += dirRow('SHORT', rsi15m, askPct);
-  if (showLong)  rows += dirRow('LONG',  rsi15m, bidPct);
+  if (showShort) rows += dirRow('SHORT', stochK, stochD, rsi15m, askPct);
+  if (showLong)  rows += dirRow('LONG',  stochK, stochD, rsi15m, bidPct);
 
   // ── Confluence mini bars (RSI + Depth) — shown only on confluence cards ───────
   let confBars = '';
@@ -357,10 +361,10 @@ function buildCard(p, alerts, trades, changes) {
     const depthPct   = confIsLong ? bidPct : askPct;
     const depthLabel = confIsLong ? 'BID' : 'ASK';
     const depthPass  = depthPct >= 55;
-    const rsiPass    = confIsLong ? rsi15m < 35 : rsi15m > 65;
-    const rsiPct     = Math.min(100, Math.max(0, rsi15m));
-    const rsiCurCol  = confIsLong ? (rsi15m < 35 ? '#00e676' : '#555') : (rsi15m > 65 ? '#ff3d57' : '#555');
-    const rsiDotCls  = rsiPass ? (confIsLong ? 'long-pass' : 'short-pass') : (confIsLong ? 'long-fail' : 'short-fail');
+    const stochPass   = confIsLong ? stochK < 25 : stochK > 75;
+    const stochPct    = Math.min(100, Math.max(0, stochK));
+    const stochCurCol = confIsLong ? (stochK < 25 ? '#00e676' : '#555') : (stochK > 75 ? '#ff3d57' : '#555');
+    const stochDotCls = stochPass ? (confIsLong ? 'long-pass' : 'short-pass') : (confIsLong ? 'long-fail' : 'short-fail');
     const dptDotCls  = depthPass ? (confIsLong ? 'long-pass' : 'short-pass') : (confIsLong ? 'long-fail' : 'short-fail');
     const fillPct    = Math.min(100, Math.max(0, depthPct));
     const fillColor  = confIsLong
@@ -372,14 +376,14 @@ function buildCard(p, alerts, trades, changes) {
     const gateLinePct = confIsLong ? 55 : 45;
 
     confBars = `<div class="cbar-row">
-      <span class="gc-dot cbar-dot ${rsiDotCls}"></span>
-      <span class="cbar-label">RSI</span>
+      <span class="gc-dot cbar-dot ${stochDotCls}"></span>
+      <span class="cbar-label">STOCH</span>
       <div class="cbar-track">
-        <div class="cbar-zg" style="width:35%"></div>
-        <div class="cbar-zr" style="left:65%;width:35%"></div>
-        <div class="cbar-thresh cbar-thresh-l" style="left:35%"></div>
-        <div class="cbar-thresh cbar-thresh-r" style="left:65%"></div>
-        <div class="cbar-cursor" style="left:${rsiPct}%;background:${rsiCurCol};box-shadow:0 0 5px ${rsiCurCol}"></div>
+        <div class="cbar-zg" style="width:25%"></div>
+        <div class="cbar-zr" style="left:75%;width:25%"></div>
+        <div class="cbar-thresh cbar-thresh-l" style="left:25%"></div>
+        <div class="cbar-thresh cbar-thresh-r" style="left:75%"></div>
+        <div class="cbar-cursor" style="left:${stochPct}%;background:${stochCurCol};box-shadow:0 0 5px ${stochCurCol}"></div>
       </div>
     </div>
     <div class="cbar-row">
@@ -442,18 +446,19 @@ function buildCard(p, alerts, trades, changes) {
   </div>`;
 }
 
-function dirRow(direction, rsi15m, depthPct) {
-  const isLong     = direction === 'LONG';
-  const rowCls     = isLong ? 'long-row' : 'short-row';
-  const depthLabel = isLong ? 'BID%' : 'ASK%';
-  const rsiColor   = isLong ? (rsi15m < 35 ? 'green' : 'grey') : (rsi15m > 65 ? 'red' : 'grey');
-  const depthColor = depthPct >= 55 ? (isLong ? 'green' : 'red') : 'grey';
+function dirRow(direction, stochK, stochD, rsi15m, depthPct) {
+  const isLong      = direction === 'LONG';
+  const rowCls      = isLong ? 'long-row' : 'short-row';
+  const depthLabel  = isLong ? 'BID%' : 'ASK%';
+  const stochColor  = isLong ? (stochK < 25 ? 'green' : 'grey') : (stochK > 75 ? 'red' : 'grey');
+  const depthColor  = depthPct >= 55 ? (isLong ? 'green' : 'red') : 'grey';
 
   return `<div class="dir-row ${rowCls}">
     <div class="dir-vals">
       <div class="dv-item">
-        <span class="dv-label">RSI15</span>
-        <span class="dv-val ${rsiColor}">${rsi15m.toFixed(0)}</span>
+        <span class="dv-label">STOCH</span>
+        <span class="dv-val ${stochColor}">${stochK.toFixed(0)}/${stochD.toFixed(0)}</span>
+        <span style="color:#555;font-size:9px;margin-left:3px">RSI${rsi15m.toFixed(0)}</span>
       </div>
       <div class="dv-item">
         <span class="dv-label">${depthLabel}</span>
@@ -557,16 +562,20 @@ function buildAlertCard(a, trades, pairMap) {
 
   // ── Snap data (frozen at alert fire) ──────────────────────────────────────
   const snapJ15m = +(a.j15m   || 0);
-  const snapRsi  = +(a.rsi15m || 0);
-  const snapAdx  = +(a.adx1h  || 0);
-  const snapAtr  = +(a.atr15m || 0);
+  const snapRsi    = +(a.rsi15m  || 0);
+  const snapStochK = +(a.stoch_k || 0);
+  const snapStochD = +(a.stoch_d || 0);
+  const snapAdx    = +(a.adx1h   || 0);
+  const snapAtr    = +(a.atr15m  || 0);
 
   // ── NOW data (live from pair_states) ──────────────────────────────────────
-  const ps      = (pairMap || {})[sym] || {};
-  const nowJ15m = ps.j15m   != null ? +ps.j15m   : snapJ15m;
-  const nowRsi  = ps.rsi15m != null ? +ps.rsi15m : snapRsi;
-  const nowAdx  = ps.adx1h  != null ? +ps.adx1h  : snapAdx;
-  const nowAtr  = ps.atr15m != null ? +ps.atr15m : snapAtr;
+  const ps       = (pairMap || {})[sym] || {};
+  const nowJ15m  = ps.j15m    != null ? +ps.j15m    : snapJ15m;
+  const nowRsi   = ps.rsi15m  != null ? +ps.rsi15m  : snapRsi;
+  const nowStochK= ps.stoch_k != null ? +ps.stoch_k : snapStochK;
+  const nowStochD= ps.stoch_d != null ? +ps.stoch_d : snapStochD;
+  const nowAdx   = ps.adx1h   != null ? +ps.adx1h   : snapAdx;
+  const nowAtr   = ps.atr15m  != null ? +ps.atr15m  : snapAtr;
 
   // ── Live price + 24h change ───────────────────────────────────────────────
   const livePrice     = (STATE.prices || {})[sym] || a.entry_price || 0;
@@ -604,7 +613,8 @@ function buildAlertCard(a, trades, pairMap) {
 
   // ── Metric color helpers ──────────────────────────────────────────────────
   const j15mClr = v => v > 80 ? '#ff4444' : v < 20 ? '#00ff88' : '#ffaa00';
-  const rsiClr  = v => v > 65 ? '#ff4444' : v < 35 ? '#00ff88' : '#fff';
+  const rsiClr   = v => v > 65 ? '#ff4444' : v < 35 ? '#00ff88' : '#fff';
+  const stochClr = v => v > 75 ? '#ff4444' : v < 25 ? '#00ff88' : '#fff';
   const adxClr  = v => v >= 50 ? '#00ff88' : v >= 25 ? '#ffaa00' : '#fff';
 
   const mkMetric = (lbl, val, clr, dec) =>
@@ -613,15 +623,17 @@ function buildAlertCard(a, trades, pairMap) {
       <div class="ac2-metric-val" style="color:${clr(val)}">${val.toFixed(dec)}</div>
     </div>`;
 
-  const snapRow = mkMetric('J15M', snapJ15m, j15mClr, 1)
-    + mkMetric('RSI',  snapRsi,  rsiClr,  1)
-    + mkMetric('ADX',  snapAdx,  adxClr,  1)
-    + mkMetric('ATR',  snapAtr,  () => '#fff', 4);
+  const snapRow = mkMetric('J15M',  snapJ15m,  j15mClr, 1)
+    + mkMetric('STOCH', snapStochK, stochClr, 1)
+    + mkMetric('RSI',   snapRsi,    rsiClr,   1)
+    + mkMetric('ADX',   snapAdx,    adxClr,   1)
+    + mkMetric('ATR',   snapAtr,    () => '#fff', 4);
 
-  const nowRow  = mkMetric('J15M', nowJ15m, j15mClr, 1)
-    + mkMetric('RSI',  nowRsi,  rsiClr,  1)
-    + mkMetric('ADX',  nowAdx,  adxClr,  1)
-    + mkMetric('ATR',  nowAtr,  () => '#fff', 4);
+  const nowRow  = mkMetric('J15M',   nowJ15m,   j15mClr, 1)
+    + mkMetric('STOCH',  nowStochK,  stochClr, 1)
+    + mkMetric('RSI',    nowRsi,     rsiClr,   1)
+    + mkMetric('ADX',    nowAdx,     adxClr,   1)
+    + mkMetric('ATR',    nowAtr,     () => '#fff', 4);
 
   // ── Buttons ───────────────────────────────────────────────────────────────
   const dis      = inTrade ? 'disabled' : '';
