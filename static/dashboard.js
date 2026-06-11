@@ -96,64 +96,100 @@ function updateScanStatus() {
 
 // ── Market Health strip ───────────────────────────────────────────────────────
 function renderMarketHealth() {
-  const mh = STATE?.market_health;
-  const pillCls = st => 'mh-pill mh-pill-' + (st || 'caution').toLowerCase();
-  const compCls = st => 'mh-companion mh-comp-' + (st || 'caution').toLowerCase();
+    const mh = STATE?.market_health;
 
-  const context = (status, side, mh) => {
-    if (!mh) return '<div class="mh-ctx-line">Initialising…</div>';
-    const isBear = side === 'SHORT';
-    const ratio  = isBear ? (mh.bear_ratio ?? 0) : (mh.bull_ratio ?? 0);
-    const total  = mh.total || 10;
-    const pCount = Math.round(ratio * total);
-    const lbl    = isBear ? 'bear' : 'bull';
-    const adx    = mh.avg_adx || 0;
-    const j5     = mh.avg_j5  || 50;
-    const slN    = Math.round((mh.sl_rate || 0) * 6);
-    if (status === 'RUN') {
-      return '<div class="mh-ctx-line">All conditions met</div>' +
-             '<div class="mh-ctx-line">Signals clear — ready to fire</div>';
-    }
-    if (status === 'HALT') {
+    const context = (status, side, mh) => {
+      if (!mh) return '<div class="mh-ctx-line">Initialising…</div>';
+      const isBear = side === 'SHORT';
+      const ratio  = isBear ? (mh.bear_ratio ?? 0) : (mh.bull_ratio ?? 0);
+      const total  = mh.total || 10;
+      const pCount = Math.round(ratio * total);
+      const lbl    = isBear ? 'bear' : 'bull';
+      const adx    = mh.avg_adx || 0;
+      const j5     = mh.avg_j5  || 50;
+      const slN    = Math.round((mh.sl_rate || 0) * 6);
+      if (status === 'RUN') {
+        return '<div class="mh-ctx-line">All conditions met</div>' +
+               '<div class="mh-ctx-line">Signals clear — ready to fire</div>';
+      }
+      if (status === 'HALT') {
+        const lines = [];
+        if (ratio < 0.3)
+          lines.push(`${lbl} pairs ${pCount} of ${total} — need ${Math.ceil(total * 0.3)}+`);
+        if ((mh.sl_rate || 0) >= 0.6)
+          lines.push(`SL rate ${slN}/6 — too high`);
+        if (isBear  && j5 >= 85 && ratio < 0.5)
+          lines.push(`Avg J5 ${j5.toFixed(1)} overbought + bears below 50%`);
+        if (!isBear && j5 <= 15 && ratio < 0.5)
+          lines.push(`Avg J5 ${j5.toFixed(1)} oversold + bulls below 50%`);
+        if (!lines.length) lines.push('Market conditions unsafe');
+        return lines.slice(0, 2).map(l => `<div class="mh-ctx-line">${l}</div>`).join('');
+      }
       const lines = [];
-      if (ratio < 0.3)
-        lines.push(`${lbl} pairs ${pCount} of ${total} — need ${Math.ceil(total * 0.3)}+`);
-      if ((mh.sl_rate || 0) >= 0.6)
-        lines.push(`SL rate ${slN}/6 — too high`);
-      if (isBear  && j5 >= 85 && ratio < 0.5)
-        lines.push(`Avg J5 ${j5.toFixed(1)} overbought + bears below 50%`);
-      if (!isBear && j5 <= 15 && ratio < 0.5)
-        lines.push(`Avg J5 ${j5.toFixed(1)} oversold + bulls below 50%`);
-      if (!lines.length) lines.push('Market conditions unsafe');
+      if (ratio < 0.6)
+        lines.push(`Need ${lbl} ratio 0.6 — currently ${ratio.toFixed(2)}`);
+      if (adx < 35)
+        lines.push(`Need avg ADX 35 — currently ${adx.toFixed(1)}`);
+      if (isBear && j5 > 70)
+        lines.push(`Need avg J5 ≤70 — currently ${j5.toFixed(1)}`);
+      if (!isBear && j5 < 30)
+        lines.push(`Need avg J5 ≥30 — currently ${j5.toFixed(1)}`);
+      if ((mh.sl_rate || 0) >= 0.4)
+        lines.push(`SL rate ${slN}/6 — need below 3`);
+      if (!lines.length) lines.push('Near RUN threshold');
       return lines.slice(0, 2).map(l => `<div class="mh-ctx-line">${l}</div>`).join('');
-    }
-    const lines = [];
-    if (ratio < 0.6)
-      lines.push(`Need ${lbl} ratio 0.6 — currently ${ratio.toFixed(2)}`);
-    if (adx < 35)
-      lines.push(`Need avg ADX 35 — currently ${adx.toFixed(1)}`);
-    if (isBear && j5 > 70)
-      lines.push(`Need avg J5 ≤70 — currently ${j5.toFixed(1)}`);
-    if (!isBear && j5 < 30)
-      lines.push(`Need avg J5 ≥30 — currently ${j5.toFixed(1)}`);
-    if ((mh.sl_rate || 0) >= 0.4)
-      lines.push(`SL rate ${slN}/6 — need below 3`);
-    if (!lines.length) lines.push('Near RUN threshold');
-    return lines.slice(0, 2).map(l => `<div class="mh-ctx-line">${l}</div>`).join('');
-  };
+    };
 
-  const renderSide = (pillId, ctxId, status, side) => {
-    const pill = document.getElementById(pillId);
-    const ctx  = document.getElementById(ctxId);
-    if (!pill || !ctx) return;
-    pill.className = pillCls(status);
-    pill.innerHTML = `<span class="mh-dir">${side}</span><span class="mh-state">${status || 'CAUTION'}</span>`;
-    ctx.className  = compCls(status);
-    ctx.innerHTML  = context(status, side, mh);
-  };
-  renderSide('mh-short', 'mh-short-ctx', mh?.short_status || 'CAUTION', 'SHORT');
-  renderSide('mh-long',  'mh-long-ctx',  mh?.long_status  || 'CAUTION', 'LONG');
-}
+    // Store state for overlay (opened on chip tap)
+    window._mhStatusShort = mh?.short_status || 'CAUTION';
+    window._mhStatusLong  = mh?.long_status  || 'CAUTION';
+    window._mhCtxShort    = context(window._mhStatusShort, 'SHORT', mh);
+    window._mhCtxLong     = context(window._mhStatusLong,  'LONG',  mh);
+
+    // Update header chips
+    const updateChip = (chipId, dotId, status) => {
+      const chip = document.getElementById(chipId);
+      const dot  = document.getElementById(dotId);
+      if (!chip || !dot) return;
+      const st = (status || 'caution').toLowerCase();
+      chip.className = `mh-chip mh-chip-${st}`;
+      dot.className  = `mhc-dot mhc-dot-${st}`;
+    };
+    updateChip('mhc-short', 'mhc-short-dot', window._mhStatusShort);
+    updateChip('mhc-long',  'mhc-long-dot',  window._mhStatusLong);
+  }
+
+  function openMhOverlay() {
+    const bd   = document.getElementById('mh-ov-bd');
+    const body = document.getElementById('mh-ov-body');
+    if (!bd || !body) return;
+    const sStatus = window._mhStatusShort || 'CAUTION';
+    const lStatus = window._mhStatusLong  || 'CAUTION';
+    const sCtx    = (window._mhCtxShort || '<div class="mh-ctx-line">Initialising…</div>').replace(/mh-ctx-line/g, 'mh-ov-ctx-line');
+    const lCtx    = (window._mhCtxLong  || '<div class="mh-ctx-line">Initialising…</div>').replace(/mh-ctx-line/g, 'mh-ov-ctx-line');
+    const pilCls  = st => `mh-ov-pill mh-ov-pill-${st.toLowerCase()}`;
+    body.innerHTML =
+      '<div class="mh-ov-section">' +
+        '<div class="mh-ov-side-hdr">' +
+          '<span class="mh-ov-side-label">SHORT SIDE</span>' +
+          `<span class="${pilCls(sStatus)}">${sStatus}</span>` +
+        '</div>' +
+        sCtx +
+      '</div>' +
+      '<div class="mh-ov-divider"></div>' +
+      '<div class="mh-ov-section">' +
+        '<div class="mh-ov-side-hdr">' +
+          '<span class="mh-ov-side-label">LONG SIDE</span>' +
+          `<span class="${pilCls(lStatus)}">${lStatus}</span>` +
+        '</div>' +
+        lCtx +
+      '</div>';
+    bd.classList.add('open');
+  }
+
+  function closeMhOverlay() {
+    document.getElementById('mh-ov-bd')?.classList.remove('open');
+  }
 function render() {
   renderHeader();
   updateNavCounts();
@@ -500,14 +536,18 @@ function renderBanner() {
       return { sym: p.symbol, j, longConf, shortConf };
     }).sort((a, b) => a.j - b.j);
 
-    // Anti-overlap: pairs within 4 pts alternate between row 0 and row 1 (max 2 rows)
-    const rowEdge = [undefined, undefined];
-    const placed = items.map(item => {
-      let row = 0;
-      if (rowEdge[0] !== undefined && rowEdge[0] > item.j - 4) row = 1;
-      rowEdge[row] = item.j + 4;
-      return { ...item, row };
-    });
+    // Anti-overlap: up to 3 stagger rows — pairs within 6 pts try next row
+      const NUM_ROWS = 3;
+      const rowEdge = new Array(NUM_ROWS).fill(undefined);
+      const placed = items.map(item => {
+        let row = 0;
+        for (let r = 0; r < NUM_ROWS; r++) {
+          if (rowEdge[r] === undefined || rowEdge[r] <= item.j - 6) { row = r; break; }
+          row = Math.min(r + 1, NUM_ROWS - 1);
+        }
+        rowEdge[row] = item.j + 6;
+        return { ...item, row };
+      });
 
     container.innerHTML = placed.map(({ sym, j, row, longConf, shortConf }) => {
       const isConf = longConf || shortConf;
@@ -515,7 +555,7 @@ function renderBanner() {
         ? (j < 20 ? '#00e676' : j < 35 ? 'rgba(0,230,118,0.5)' : j < 65 ? 'rgba(255,255,255,0.4)' : j < 80 ? 'rgba(255,61,87,0.5)' : '#ff3d57')
         : (j < 40 ? '#00e676' : j < 50 ? 'rgba(0,230,118,0.5)' : j < 60 ? 'rgba(255,255,255,0.4)' : j < 70 ? 'rgba(255,61,87,0.5)' : '#ff3d57');
       const pulseCls   = isConf ? ' cb-conf' : '';
-      const extraBot   = row * 12;
+      const extraBot   = row * 16;
       return `<div class="cb-chip${pulseCls}" style="left:${j.toFixed(1)}%;bottom:${extraBot}px;color:${col}">${sym}${isConf ? '✦' : ''}<div class="cb-tick"></div></div>`;
     }).join('');
   }
