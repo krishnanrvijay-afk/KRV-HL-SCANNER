@@ -65,7 +65,7 @@
   @keyframes conf-long-glow  { 0%,100% { box-shadow: 0 0 18px rgba(0,230,118,0.15),0 2px 8px rgba(0,0,0,0.6); } 50% { box-shadow: 0 0 32px rgba(0,230,118,0.3),0 2px 8px rgba(0,0,0,0.6); } }
   @keyframes conf-short-glow { 0%,100% { box-shadow: 0 0 18px rgba(255,61,87,0.15),0 2px 8px rgba(0,0,0,0.6); }  50% { box-shadow: 0 0 32px rgba(255,61,87,0.3),0 2px 8px rgba(0,0,0,0.6); } }
   @keyframes conf-sym-pulse  { 0%,100% { text-shadow: 0 0 6px currentColor; } 50% { text-shadow: 0 0 16px currentColor; } }
-  #j15m-banner { background: #0d0d0d; border-bottom: 1px solid #1a1a1a; padding: 8px 16px 14px; }
+  #j15m-banner { background: #0d0d0d; border-bottom: 1px solid #1a1a1a; padding: 8px 12px 14px; }
   .jb-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
   .jb-title { font-size: 8px; font-weight: 800; color: #fff; letter-spacing: 2px; text-transform: uppercase; }
   .jb-header-right { display: flex; align-items: center; gap: 12px; }
@@ -79,7 +79,7 @@
   .jb-tf-active-15M  { background: rgba(0,230,118,0.1);   border-color: rgba(0,230,118,0.4);   color: #00e676; }
   .jb-tf-active-1H   { background: rgba(255,170,0,0.1);   border-color: rgba(255,170,0,0.4);   color: #ffaa00; }
   .jb-tf-active-BOTH { background: rgba(100,160,255,0.1); border-color: rgba(100,160,255,0.4); color: #66aaff; }
-  .jb-ruler-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .jb-ruler-row { display: flex; align-items: center; gap: 0; margin-bottom: 3px; }
   .jb-rdot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
   .jb-ruler-content { flex: 1; min-width: 0; }
   .jb-ticks { display: flex; justify-content: space-between; margin-bottom: 1px; }
@@ -601,7 +601,6 @@
     </div>
   </div>
   <div class="jb-ruler-row" id="jb-ruler-15m">
-    <span class="jb-rdot" style="background:#00e676"></span>
     <div class="jb-ruler-content">
       <div class="jb-ticks">
         <span class="jb-tick" style="color:#00e676">0</span><span class="jb-tick" style="color:#00e676">20</span><span class="jb-tick" style="color:#555">40</span><span class="jb-tick" style="color:#555">60</span><span class="jb-tick" style="color:#ff3d57">80</span><span class="jb-tick" style="color:#ff3d57">100</span>
@@ -617,7 +616,6 @@
     </div>
   </div>
   <div class="jb-ruler-row" id="jb-ruler-1h">
-    <span class="jb-rdot" style="background:#ffaa00"></span>
     <div class="jb-ruler-content">
       <div class="jb-ticks">
         <span class="jb-tick" style="color:#00e676">0</span><span class="jb-tick" style="color:#00e676">20</span><span class="jb-tick" style="color:#00e676">40</span><span class="jb-tick" style="color:#ff3d57">60</span><span class="jb-tick" style="color:#ff3d57">80</span><span class="jb-tick" style="color:#ff3d57">100</span>

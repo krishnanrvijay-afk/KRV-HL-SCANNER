@@ -542,10 +542,10 @@ function renderBanner() {
       const placed = items.map(item => {
         let row = 0;
         for (let r = 0; r < NUM_ROWS; r++) {
-          if (rowEdge[r] === undefined || rowEdge[r] <= item.j - 6) { row = r; break; }
+          if (rowEdge[r] === undefined || rowEdge[r] <= item.j - 5) { row = r; break; }
           row = Math.min(r + 1, NUM_ROWS - 1);
         }
-        rowEdge[row] = item.j + 6;
+        rowEdge[row] = item.j + 5;
         return { ...item, row };
       });
 
