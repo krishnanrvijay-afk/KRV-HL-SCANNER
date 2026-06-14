@@ -1660,16 +1660,39 @@ async def get_tradelog():
 
 
 @app.get("/api/hl-balance")
-async def hl_balance():
-    # TODO: replace with real HL API call when credentials are added to Railway
-    return {
-        "equity":         0.0,
-        "available":      0.0,
-        "margin_used":    0.0,
-        "unrealized_pnl": 0.0,
-        "open_positions": 0,
-        "fetched_at":     datetime.now(timezone.utc).isoformat(),
-    }
+def hl_balance():
+    wallet = os.environ.get("HL_WALLET_ADDRESS", "")
+    if not wallet:
+        return {"error": "HL_WALLET_ADDRESS not configured"}
+    short_wallet = wallet[:6] + "..." + wallet[-4:]
+    try:
+        resp = requests.post(
+            "https://api.hyperliquid.xyz/info",
+            json={"type": "clearinghouseState", "user": wallet},
+            timeout=10,
+        )
+        if resp.status_code != 200:
+            return {"error": f"HL API error: {resp.status_code}"}
+        data = resp.json()
+        ms             = data.get("marginSummary", {})
+        equity         = float(ms.get("accountValue",    0) or 0)
+        available      = float(data.get("withdrawable",  0) or 0)
+        margin_used    = float(ms.get("totalMarginUsed", 0) or 0)
+        unrealized_pnl = float(ms.get("totalRawUpl",    0) or 0)
+        positions      = data.get("assetPositions", [])
+        open_positions = sum(1 for p in positions if p.get("position", {}).get("szi", "0") != "0")
+        print(f"[HL BALANCE] fetched for wallet {short_wallet} equity={equity}")
+        return {
+            "equity":         equity,
+            "available":      available,
+            "margin_used":    margin_used,
+            "unrealized_pnl": unrealized_pnl,
+            "open_positions": open_positions,
+            "wallet":         short_wallet,
+            "fetched_at":     datetime.now(timezone.utc).isoformat(),
+        }
+    except Exception as e:
+        return {"error": f"HL API request failed: {str(e)}"}
 
 
 @app.get("/api/tradelog/csv")
