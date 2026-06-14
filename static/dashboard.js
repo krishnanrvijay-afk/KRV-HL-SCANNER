@@ -1637,7 +1637,7 @@ async function _ovFetch(sym, isFirst) {
   }
 
   function _ovGateLabelHtml(name) {
-    return `<span style="font-size:10px;font-weight:700;color:#888;font-family:'JetBrains Mono',monospace;letter-spacing:0.08em">${name}</span>`;
+    return `<span style="font-size:11px;font-weight:700;color:#ffffff;font-family:'JetBrains Mono',monospace;letter-spacing:0.08em">${name}</span>`;
   }
 
   function _ovVerdictHtml(d, dir) {
@@ -1669,7 +1669,7 @@ async function _ovFetch(sym, isFirst) {
     const v    = d.j15m || 0;
     const pass = isL ? v < 20 : v > 80;
     const col  = pass ? '#00e676' : '#ff5252';
-    const body = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555">needs ${isL ? '&lt;20' : '&gt;80'} for ${isL ? 'LONG' : 'SHORT'}, currently <span id="pov-j15-val" style="color:${col};font-weight:700">${v.toFixed(0)}</span></div>`;
+    const body = `<div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#ffffff">needs ${isL ? '&lt;20' : '&gt;80'} for ${isL ? 'LONG' : 'SHORT'}, currently <span id="pov-j15-val" style="color:#ffffff;font-weight:700">${v.toFixed(0)}</span></div>`;
     return _ovGateRowHtml('j15', 'J 15M', _ovPassIcon(pass), body);
   }
 
@@ -1678,7 +1678,7 @@ async function _ovFetch(sym, isFirst) {
     const v    = d.j1h || 0;
     const pass = isL ? v < 40 : v > 60;
     const col  = pass ? '#00e676' : '#ff5252';
-    const body = `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555">needs ${isL ? '&lt;40' : '&gt;60'} for ${isL ? 'LONG' : 'SHORT'}, currently <span id="pov-j1h-val" style="color:${col};font-weight:700">${v.toFixed(0)}</span></div>`;
+    const body = `<div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#ffffff">needs ${isL ? '&lt;40' : '&gt;60'} for ${isL ? 'LONG' : 'SHORT'}, currently <span id="pov-j1h-val" style="color:#ffffff;font-weight:700">${v.toFixed(0)}</span></div>`;
     return _ovGateRowHtml('j1h', 'J 1H', _ovPassIcon(pass), body);
   }
 
@@ -1711,8 +1711,8 @@ async function _ovFetch(sym, isFirst) {
     const dLeft = Math.min(99, Math.max(0.5, D)).toFixed(1);
     const kGlow = inZone ? `box-shadow:0 0 6px ${kCol};` : '';
     const body = `
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555">${desc1} for ${isL ? 'LONG' : 'SHORT'}</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#666;margin-top:2px">Currently <span id="pov-sk-val" style="color:${kCol};font-weight:700">K=${K.toFixed(1)}</span> \u00b7 <span id="pov-sd-val" style="color:${dCol}">D=${D.toFixed(1)}</span></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#ffffff">${desc1} for ${isL ? 'LONG' : 'SHORT'}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#ffffff;margin-top:2px">Currently <span id="pov-sk-val" style="color:#ffffff;font-weight:700">K=${K.toFixed(1)}</span> \u00b7 <span id="pov-sd-val" style="color:#ffffff;font-weight:700">D=${D.toFixed(1)}</span></div>
       <div style="position:relative;height:10px;background:#1a1a1a;border-radius:3px;margin:8px 0 0;overflow:visible">
         <div style="position:absolute;left:0;width:25%;height:100%;background:#00ff6a;opacity:0.2;border-radius:3px 0 0 3px;pointer-events:none"></div>
         <div style="position:absolute;left:75%;width:25%;height:100%;background:#ff3d3d;opacity:0.2;border-radius:0 3px 3px 0;pointer-events:none"></div>
@@ -1738,12 +1738,12 @@ async function _ovFetch(sym, isFirst) {
     const label = isL ? 'Bid' : 'Ask';
     const barCol = pass ? col : 'rgba(100,100,100,0.3)';
     const body = `
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555">${label} orders need at least 55% of the order book for ${isL ? 'LONG' : 'SHORT'}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#ffffff">${label} orders need at least 55% of the order book for ${isL ? 'LONG' : 'SHORT'}</div>
       <div style="position:relative;height:8px;background:#1a1a1a;border-radius:3px;margin:6px 0 4px;overflow:hidden">
         <div id="pov-depth-bar" style="position:absolute;left:0;height:100%;width:${Math.min(100, v).toFixed(0)}%;background:${barCol};border-radius:3px;transition:width 0.4s"></div>
         <div style="position:absolute;left:55%;top:0;height:100%;width:1px;background:rgba(255,255,255,0.35)"></div>
       </div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555"><span id="pov-depth-val" style="color:${pass ? col : '#888'};font-weight:700">${v.toFixed(0)}%</span> \u00b7 threshold 55%</div>`;
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#aaaaaa;font-weight:600"><span id="pov-depth-val" style="color:#ffffff;font-weight:700">${v.toFixed(0)}%</span> \u00b7 threshold 55%</div>`;
     return _ovGateRowHtml('depth', 'BID/ASK DEPTH', _ovPassIcon(pass), body);
   }
 
@@ -1760,7 +1760,7 @@ async function _ovFetch(sym, isFirst) {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px">
         ${_ovGateLabelHtml('2-SCAN CONFIRMATION')}
       </div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#555;margin-bottom:6px">${passed} of 4 consecutive scans passed \u2014 needs 4</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#ffffff;margin-bottom:6px">${passed} of 4 consecutive scans passed \u2014 needs 4</div>
       <div style="display:flex;gap:4px">${dots}</div>
     </div>`;
   }
@@ -1769,15 +1769,15 @@ async function _ovFetch(sym, isFirst) {
     const scans = (d.last_scan_summaries || []).slice(0, 3);
     const isL   = dir !== 'SHORT';
     if (!scans.length)
-      return '<div style="color:#2a2a2a;font-family:\'JetBrains Mono\',monospace;font-size:9px;padding:0 16px 8px">no scan data yet</div>';
+      return '<div style="color:#aaaaaa;font-family:\'JetBrains Mono\',monospace;font-size:10px;font-weight:600;padding:0 16px 8px">no scan data yet</div>';
     return scans.map(s => {
       const sc    = isL ? (s.score_long || 0) : (s.score_short || 0);
       const ready = sc === 4;
       const jVal  = s.j15m || 0;
-      const jCol  = jVal < 20 || jVal > 80 ? '#ffb300' : '#555';
+      const jCol  = jVal < 20 || jVal > 80 ? '#ffb300' : '#aaaaaa';
       const bPct  = s.bid_pct || 0;
       const kVal  = s.stoch_k || 0;
-      return `<div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#555;padding:2px 16px">#${s.n} J:<span style="color:${jCol}">${jVal.toFixed(0)}</span> K:${kVal.toFixed(0)} B:<span style="color:${bPct >= 55 ? '#00e676' : '#555'}">${bPct.toFixed(0)}%</span> \u2014 <span style="color:${ready ? '#00e676' : '#555'}">${ready ? 'ready' : 'not ready'}</span></div>`;
+      return `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;color:#aaaaaa;padding:2px 16px">#${s.n} J:<span style="color:${jCol}">${jVal.toFixed(0)}</span> K:${kVal.toFixed(0)} B:<span style="color:${bPct >= 55 ? '#00e676' : '#aaaaaa'}">${bPct.toFixed(0)}%</span> \u2014 <span style="color:${ready ? '#00e676' : '#555'}">${ready ? 'ready' : 'not ready'}</span></div>`;
     }).join('');
   }
 
@@ -1871,7 +1871,7 @@ async function _ovFetch(sym, isFirst) {
         ${showScanConf ? _ovScanConfHtml(d, dir, score) : ''}
       </div>
       <div style="border-top:1px solid #1a1a1a;padding:8px 0 6px">
-        <div style="font-size:9px;font-weight:700;color:#333;font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;padding:0 16px 4px">SCAN HISTORY</div>
+        <div style="font-size:11px;font-weight:700;color:#ffffff;font-family:'JetBrains Mono',monospace;letter-spacing:0.08em;padding:0 16px 4px">SCAN HISTORY</div>
         <div id="pov-scan-hist">${_ovScanHistHtml(d, dir)}</div>
       </div>
       <div class="pov-actions" id="pov-actions" style="border-top:1px solid #1a1a1a;padding:12px 16px">${_ovActionsHtml(d, state, dir, trade)}</div>`;
