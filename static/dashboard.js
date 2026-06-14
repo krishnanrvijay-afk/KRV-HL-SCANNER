@@ -1707,17 +1707,17 @@ function _btcRegimeCardHtml(sym, btc, regime, corr) {
         '<span style="font-family:\'Bebas Neue\',sans-serif;font-size:20px;color:' + col + ';letter-spacing:0.04em">BTC REGIME</span>',
         '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;border:1px solid ' + col + '44;color:' + col + ';font-family:\'JetBrains Mono\',monospace;background:' + col + '11">' + lbl + '</span>',
       '</div>',
-      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:#555">',
+      '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;color:#fff;font-weight:700">',
         fmtPrice(px) + ' · <span style="color:' + chgCol + '">' + chgStr + '</span> · ADX ' + adx.toFixed(0) + ' · ' + sym + ' corr ' + corr.toFixed(2),
       '</div>',
     '</div>',
     '<div style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding:8px 12px">',
       '<div>',
         '<div style="display:flex;justify-content:space-between;font-family:\'JetBrains Mono\',monospace;font-size:8px;font-weight:700;margin-bottom:3px">',
-          '<span style="color:#555">J1H REGIME ZONE</span>',
+          '<span style="color:#fff;font-weight:700">J1H REGIME ZONE</span>',
           '<span style="color:' + col + '">' + j1h.toFixed(0) + ' — ' + regime.state + '</span>',
         '</div>',
-        '<div style="display:flex;justify-content:space-between;font-size:7px;font-weight:700;color:#555;font-family:\'JetBrains Mono\',monospace;margin-bottom:2px">',
+        '<div style="display:flex;justify-content:space-between;font-size:7px;font-weight:700;color:#fff;font-family:\'JetBrains Mono\',monospace;margin-bottom:2px">',
           '<span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100</span>',
         '</div>',
         '<div class="tbar-wrap">',
@@ -1734,8 +1734,8 @@ function _btcRegimeCardHtml(sym, btc, regime, corr) {
       '</div>',
       '<div>',
         '<div style="display:flex;justify-content:space-between;font-family:\'JetBrains Mono\',monospace;font-size:8px;font-weight:700;margin-bottom:2px">',
-          '<span style="color:#555">BTC J 15M</span>',
-          '<span style="color:' + (j15m < 20 ? '#00e676' : j15m > 80 ? '#ff4646' : '#888') + '">' + j15m.toFixed(0) + '</span>',
+          '<span style="color:#fff;font-weight:700">BTC J 15M</span>',
+          '<span style="color:' + (j15m < 20 ? '#00e676' : j15m > 80 ? '#ff4646' : '#fff') + ';font-weight:700">' + j15m.toFixed(0) + '</span>',
         '</div>',
         '<div class="rtw"><div class="rtl"></div><div class="rtm"></div><div class="rth"></div>' +
           '<div class="rdot ' + j15Cls + '" style="left:' + j15Left + '%">' + Math.round(j15m) + '</div>' +
@@ -1744,8 +1744,8 @@ function _btcRegimeCardHtml(sym, btc, regime, corr) {
       '</div>',
       '<div>',
         '<div style="display:flex;justify-content:space-between;font-family:\'JetBrains Mono\',monospace;font-size:8px;font-weight:700;margin-bottom:2px">',
-          '<span style="color:#555">BTC J 1H</span>',
-          '<span style="color:' + (j1h < 20 ? '#00e676' : j1h > 80 ? '#ff4646' : '#888') + '">' + j1h.toFixed(0) + '</span>',
+          '<span style="color:#fff;font-weight:700">BTC J 1H</span>',
+          '<span style="color:' + (j1h < 20 ? '#00e676' : j1h > 80 ? '#ff4646' : '#fff') + ';font-weight:700">' + j1h.toFixed(0) + '</span>',
         '</div>',
         '<div class="rtw"><div class="rtl"></div><div class="rtm"></div><div class="rth"></div>' +
           '<div class="rdot ' + j1hCls + '" style="left:' + j1hLeft + '%">' + Math.round(j1h) + '</div>' +
@@ -1755,7 +1755,7 @@ function _btcRegimeCardHtml(sym, btc, regime, corr) {
       '</div>',
       '<div>',
         '<div style="display:flex;justify-content:space-between;font-family:\'JetBrains Mono\',monospace;font-size:8px;font-weight:700;margin-bottom:2px">',
-          '<span style="color:#555">BTC STOCH K/D</span>',
+          '<span style="color:#fff;font-weight:700">BTC STOCH K/D</span>',
           '<span style="color:' + crossLabelCol + '">' + crossLabel + '</span>',
         '</div>',
         '<div class="rtw">' +
@@ -1771,17 +1771,17 @@ function _btcRegimeCardHtml(sym, btc, regime, corr) {
       '<div>',
         '<div style="display:flex;gap:6px;align-items:center;font-family:\'JetBrains Mono\',monospace;font-size:8px;font-weight:700">',
           '<span class="sn-pill now">LIVE</span>',
-          '<span style="color:#fff;flex:1">J15M <span style="color:' + (j15m < 20 ? '#00e676' : j15m > 80 ? '#ff4646' : '#888') + '">' + j15m.toFixed(0) + '</span></span>',
+          '<span style="color:#fff;flex:1;font-weight:700">J15M <span style="color:' + (j15m < 20 ? '#00e676' : j15m > 80 ? '#ff4646' : '#fff') + ';font-weight:700">' + j15m.toFixed(0) + '</span></span>',
           '<span style="color:#fff;flex:1">J1H <span style="color:' + col + '">' + j1h.toFixed(0) + '</span></span>',
           '<span style="color:#fff;flex:1">K/D <span style="color:' + (sk > sd ? '#00e676' : '#ff4646') + '">' + sk.toFixed(0) + '/' + sd.toFixed(0) + '</span></span>',
-          '<span style="color:#fff;flex:1">ADX <span style="color:#aaa">' + adx.toFixed(0) + '</span></span>',
-          '<span style="color:#fff;flex:1">ATR <span style="color:#aaa">' + (atr ? atr.toFixed(2) : '—') + '</span></span>',
+          '<span style="color:#fff;flex:1;font-weight:700">ADX <span style="color:#fff;font-weight:700">' + adx.toFixed(0) + '</span></span>',
+          '<span style="color:#fff;flex:1;font-weight:700">ATR <span style="color:#fff;font-weight:700">' + (atr ? atr.toFixed(2) : '—') + '</span></span>',
         '</div>',
       '</div>',
       '<div class="rdec ' + cls + '">',
         '<div style="font-family:\'JetBrains Mono\',monospace;font-size:9px;font-weight:700;color:' + col + ';margin-bottom:4px">' + decTitle + '</div>',
-        '<div style="font-family:\'JetBrains Mono\',monospace;font-size:8px;color:#888;line-height:1.5">' + decBody + '</div>',
-        (corrNote ? '<div style="font-family:\'JetBrains Mono\',monospace;font-size:8px;color:#555;margin-top:4px">' + corrNote + '</div>' : ''),
+        '<div style="font-family:\'JetBrains Mono\',monospace;font-size:8px;color:#fff;font-weight:700;line-height:1.5">' + decBody + '</div>',
+        (corrNote ? '<div style="font-family:\'JetBrains Mono\',monospace;font-size:8px;color:#fff;font-weight:700;margin-top:4px">' + corrNote + '</div>' : ''),
       '</div>',
     '</div>',
   ].join('');
@@ -1791,9 +1791,11 @@ function openPairOverlay(sym) {
   if (document.getElementById('pair-ov-bd')) return;
   const bd = document.createElement('div');
   bd.id = 'pair-ov-bd';
+  bd.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;gap:12px;padding:20px;z-index:9000';
   bd.addEventListener('click', e => { if (e.target === bd) closePairOverlay(); });
   const pn = document.createElement('div');
   pn.id = 'pair-ov-pn';
+  pn.style.cssText = 'width:380px;flex-shrink:0;max-height:80vh;min-height:500px';
   pn.dataset.sym   = sym;
   pn.dataset.state = '';
   pn.innerHTML = `<div class="pov-loading">Loading ${sym}…</div>`;
@@ -1805,6 +1807,7 @@ function openPairOverlay(sym) {
   if (_showRegime) {
     const rn = document.createElement('div');
     rn.id = 'btc-regime-pn';
+    rn.style.cssText = 'width:380px;flex-shrink:0;max-height:80vh;min-height:500px';
     const _regimeCorr = BTC_CORRELATION[sym] ?? 0.75;
     const _exemptState = _regimeCorr < 0.65;
     rn.className = _exemptState ? 'exempt' : (_regimeResult?.cls || 'exempt');
@@ -2389,8 +2392,8 @@ async function confirmResetSession() {
     '.pill-cd-large{background:rgba(255,170,0,0.12);color:#ffaa00;border:1px solid rgba(255,170,0,0.4);border-radius:4px;font-size:8px;padding:2px 6px;font-family:\'JetBrains Mono\',monospace;font-weight:700}',
     '.reset-session-btn{background:transparent;border:1px solid #ffaa00;border-radius:5px;color:#ffaa00;font-family:\'JetBrains Mono\',monospace;font-size:9px;font-weight:700;padding:3px 8px;cursor:pointer;letter-spacing:0.06em;margin-left:6px;vertical-align:middle}',
     '.reset-session-btn:hover{background:rgba(255,170,0,0.1)}',
-    '#pair-ov-bd{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:9000}',
-    '#pair-ov-pn{background:#111;border:1px solid #222;border-radius:6px;width:420px;max-width:95vw;max-height:88vh;overflow-y:auto;font-family:\'JetBrains Mono\',monospace;position:relative}',
+    '#pair-ov-bd{position:fixed;inset:0;background:rgba(0,0,0,0.92);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;gap:12px;padding:20px;z-index:9000}',
+    '#pair-ov-pn{background:#111;border:1px solid #222;border-radius:6px;width:380px;flex-shrink:0;max-height:80vh;min-height:500px;overflow-y:auto;font-family:\'JetBrains Mono\',monospace;position:relative;box-shadow:0 0 60px rgba(0,0,0,0.8),0 0 120px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.05)}',
     '.pov-actions{display:flex;flex-wrap:wrap;gap:8px}',
     '.pov-btn{flex:1;padding:9px 0;background:transparent;border:1px solid #444;border-radius:5px;color:#888;font-family:\'JetBrains Mono\',monospace;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:0.06em;min-width:100px}',
     '.pov-btn:not(:disabled):hover{opacity:0.8}',
@@ -2400,12 +2403,12 @@ async function confirmResetSession() {
     '.pov-loading{padding:30px;text-align:center;font-family:\'JetBrains Mono\',monospace;color:#555;font-size:11px}',
     /* BTC Regime two-panel backdrop */
     '#ov-backdrop{display:flex;align-items:center;justify-content:center;gap:12px;padding:20px;}',
-    '#pair-ov-bd{display:flex;align-items:center;justify-content:center;gap:12px;padding:20px;}',
-    '#btc-regime-pn{flex:1;max-width:380px;max-height:90vh;background:#0a0a12;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;font-family:\'JetBrains Mono\',monospace;}',
-    '#btc-regime-pn.confirmed{border:2px solid #00e67666;box-shadow:0 0 24px rgba(0,230,118,0.12);}',
-    '#btc-regime-pn.caution{border:2px solid #ffb30066;box-shadow:0 0 24px rgba(255,179,0,0.10);}',
-    '#btc-regime-pn.stop{border:2px solid #ff525266;box-shadow:0 0 24px rgba(255,82,82,0.14);}',
-    '#btc-regime-pn.exempt{border:1px solid #2a2a2a;}',
+    '#ov-backdrop{display:flex;align-items:center;justify-content:center;gap:12px;padding:20px;}',
+    '#btc-regime-pn{width:380px;flex-shrink:0;max-height:80vh;min-height:500px;background:#0a0a12;border-radius:8px;overflow:hidden;display:flex;flex-direction:column;font-family:\'JetBrains Mono\',monospace;}',
+    '#btc-regime-pn.confirmed{border:2px solid #00e67666;box-shadow:0 0 40px rgba(0,230,118,0.20),0 0 80px rgba(0,230,118,0.08),0 0 120px rgba(0,0,0,0.8);}',
+    '#btc-regime-pn.caution{border:2px solid #ffb30066;box-shadow:0 0 40px rgba(255,179,0,0.18),0 0 80px rgba(255,179,0,0.07),0 0 120px rgba(0,0,0,0.8);}',
+    '#btc-regime-pn.stop{border:2px solid #ff525266;box-shadow:0 0 40px rgba(255,82,82,0.22),0 0 80px rgba(255,82,82,0.09),0 0 120px rgba(0,0,0,0.8);}',
+    '#btc-regime-pn.exempt{border:1px solid #2a2a2a;box-shadow:0 0 40px rgba(255,255,255,0.05),0 0 120px rgba(0,0,0,0.8);}',
     /* Threshold bar zones */
     '.tbar{display:flex;height:16px;border-radius:4px;overflow:hidden;}',
     '.tz-safe{flex:2;background:rgba(0,230,118,0.30);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#00e676;}',
@@ -2415,9 +2418,9 @@ async function confirmResetSession() {
     '.tz-safe2{flex:2;background:rgba(255,70,70,0.30);display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#ff4646;}',
     '.tbar-wrap{position:relative;margin-bottom:3px;}',
     '.tcursor{position:absolute;top:-2px;bottom:-2px;width:3px;border-radius:2px;transform:translateX(-50%);z-index:3;}',
-    '.tcursor.conf{background:#00e676;box-shadow:0 0 8px #00e67699;}',
-    '.tcursor.caut{background:#ffb300;box-shadow:0 0 8px #ffb30099;}',
-    '.tcursor.stop{background:#ff4646;box-shadow:0 0 10px #ff464699;}',
+    '.tcursor.conf{background:#00e676;box-shadow:0 0 12px #00e676,0 0 24px rgba(0,230,118,0.5);}',
+    '.tcursor.caut{background:#ffb300;box-shadow:0 0 12px #ffb300,0 0 24px rgba(255,179,0,0.5);}',
+    '.tcursor.stop{background:#ff4646;box-shadow:0 0 12px #ff4646,0 0 24px rgba(255,70,70,0.5);}',
     '.tcursor.exempt{background:#555;}',
     /* Rail tracks */
     '.rtw{position:relative;height:16px;margin:2px 0;}',
@@ -2426,8 +2429,8 @@ async function confirmResetSession() {
     '.rth{position:absolute;right:0;width:20%;height:10px;background:#ff4646;opacity:0.35;top:50%;transform:translateY(-50%);border-radius:0 2px 2px 0;}',
     '.rdot{position:absolute;top:50%;transform:translate(-50%,-50%);width:13px;height:13px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;z-index:2;}',
     '.rsq{position:absolute;top:50%;transform:translate(-50%,-50%);width:11px;height:11px;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;z-index:2;background:#000;}',
-    '.rdot.glz{background:#00e676;box-shadow:0 0 6px #00e676;color:#000;}',
-    '.rdot.gsz{background:#ff4646;box-shadow:0 0 6px #ff4646;color:#000;}',
+    '.rdot.glz{background:#00e676;box-shadow:0 0 8px #00e676,0 0 16px rgba(0,230,118,0.4);color:#000;}',
+    '.rdot.gsz{background:#ff4646;box-shadow:0 0 8px #ff4646,0 0 16px rgba(255,70,70,0.4);color:#000;}',
     '.rdot.gnz{background:#555;color:#fff;}',
     '.rsq.glz{border:2px solid #00e676;color:#00e676;}',
     '.rsq.gsz{border:2px solid #ff4646;color:#ff4646;}',
