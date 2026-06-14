@@ -67,6 +67,66 @@ function setNav(el) {
 }
 
 // ── Market popover ────────────────────────────────────────────────────────────
+// ── HyperLiquid balance strip ──────────────────────────────────────────────
+let _hlBalFetched = false;
+let _hlBalMasked  = false;
+let _hlBalData    = null;
+
+function hlBalToggleMask() {
+  _hlBalMasked = !_hlBalMasked;
+  const eye = document.getElementById('hl-bal-eye');
+  if (eye) eye.textContent = _hlBalMasked ? '🚫' : '👁';
+  _hlBalRender();
+}
+
+async function hlBalFetch() {
+  const btn = document.getElementById('hl-bal-btn');
+  if (btn) btn.textContent = '⟳ FETCHING…';
+  ['equity','avail','margin','pnl','pos'].forEach(k => {
+    const el = document.getElementById('hl-bal-' + k);
+    if (el) { el.textContent = '⟳'; el.style.color = '#444'; }
+  });
+  try {
+    const r = await fetch('/api/hl-balance');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    _hlBalData    = await r.json();
+    _hlBalFetched = true;
+    const ts = document.getElementById('hl-bal-ts');
+    if (ts) {
+      const d = new Date();
+      ts.textContent = 'FETCHED ' + d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
+    }
+    if (btn) btn.textContent = '⟳ REFRESH';
+    _hlBalRender();
+  } catch (e) {
+    if (btn) btn.textContent = '⟳ FETCH';
+    ['equity','avail','margin','pnl','pos'].forEach(k => {
+      const el = document.getElementById('hl-bal-' + k);
+      if (el) { el.textContent = '—'; el.style.color = '#333'; }
+    });
+  }
+}
+
+function _hlBalRender() {
+  if (!_hlBalData) return;
+  const d   = _hlBalData;
+  const msk = _hlBalMasked;
+  const fmt = v => msk ? '••••••' : '$' + v.toFixed(2);
+  const eq  = document.getElementById('hl-bal-equity');
+  const av  = document.getElementById('hl-bal-avail');
+  const mg  = document.getElementById('hl-bal-margin');
+  const pn  = document.getElementById('hl-bal-pnl');
+  const ps  = document.getElementById('hl-bal-pos');
+  if (eq) { eq.textContent = fmt(d.equity);      eq.style.color = msk ? '#333' : '#ffffff'; }
+  if (av) { av.textContent = fmt(d.available);   av.style.color = msk ? '#333' : '#00e676'; }
+  if (mg) { mg.textContent = fmt(d.margin_used); mg.style.color = msk ? '#333' : '#b388ff'; }
+  if (pn) {
+    if (msk) { pn.textContent = '••••••'; pn.style.color = '#333'; }
+    else { pn.textContent = (d.unrealized_pnl >= 0 ? '+' : '') + '$' + d.unrealized_pnl.toFixed(2); pn.style.color = d.unrealized_pnl >= 0 ? '#00e676' : '#ff5252'; }
+  }
+  if (ps) { ps.textContent = d.open_positions; ps.style.color = '#ffffff'; }
+}
+
 function toggleMarket(e) {
   e.stopPropagation();
   marketOpen ? closeMarket() : openMarket();

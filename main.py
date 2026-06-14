@@ -1659,6 +1659,19 @@ async def get_tradelog():
     return app_state.trade_log
 
 
+@app.get("/api/hl-balance")
+async def hl_balance():
+    # TODO: replace with real HL API call when credentials are added to Railway
+    return {
+        "equity":         0.0,
+        "available":      0.0,
+        "margin_used":    0.0,
+        "unrealized_pnl": 0.0,
+        "open_positions": 0,
+        "fetched_at":     datetime.now(timezone.utc).isoformat(),
+    }
+
+
 @app.get("/api/tradelog/csv")
 async def download_tradelog_csv():
     fieldnames = [

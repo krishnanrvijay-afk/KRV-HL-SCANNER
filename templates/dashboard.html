@@ -55,6 +55,11 @@
   .fp.fp-short.active       { background: #00ff88; color: #000; border-color: #00ff88; }
   .fp.fp-long.active        { background: #00ff88; color: #000; border-color: #00ff88; }
   .fp-count { display: inline-block; background: rgba(255,255,255,0.15); border-radius: 8px; padding: 0 5px; margin-left: 3px; font-size: 11px; font-weight: 800; }
+  .hl-alert-pill { display:inline-flex;align-items:center;gap:4px;background:#1a1400;border:1px solid rgba(255,179,0,0.27);border-radius:20px;padding:4px 10px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:13px;user-select:none; }
+  .hl-alert-pill:hover { opacity:0.85; }
+  .hl-bal-pill  { flex:1;background:#12122a;border:1px solid rgba(179,136,255,0.13);border-radius:5px;padding:7px 10px; }
+  .hl-bal-label { font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:#ffffff;opacity:0.6;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px; }
+  .hl-bal-val   { font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700; }
   .scan-status { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #aaa; white-space: nowrap; }
   .scan-status .ts  { color: #00ff88; }
   .scan-status .cd  { color: #ffaa00; }
@@ -571,15 +576,32 @@
 
 <div class="nav-row">
   <div class="nav-pills">
-    <div class="fp active"         data-tab="grid"    data-filter="ALL"          onclick="setNav(this)">ALL</div>
-    <div class="fp fp-short"        data-tab="grid"    data-filter="BOUNCE_SHORT" onclick="setNav(this)">BOUNCE SHORT</div>
-    <div class="fp fp-long"         data-tab="grid"    data-filter="BOUNCE_LONG"  onclick="setNav(this)">BOUNCE LONG</div>
-    <div class="fp tab-alerts"     data-tab="alerts"  data-filter=""             onclick="setNav(this)">ALERTS <span class="fp-count" id="nav-alert-count">0</span></div>
-    <div class="fp tab-pos"        data-tab="pos"     data-filter=""             onclick="setNav(this)">POSITIONS <span class="fp-count" id="nav-pos-count">0</span></div>
-    <div class="fp"                data-tab="grid"    data-filter="COOLDOWN"     onclick="setNav(this)">COOLDOWN</div>
-    <div class="fp tab-log"        data-tab="log"     data-filter=""             onclick="setNav(this)">LOG <span class="fp-count" id="nav-log-count">0</span></div>
+    <div class="fp active"  data-tab="grid"   data-filter="ALL"      onclick="setNav(this)">ALL</div>
+    <div class="fp tab-pos" data-tab="pos"    data-filter=""         onclick="setNav(this)">POSITIONS <span class="fp-count" id="nav-pos-count">0</span></div>
+    <div class="fp"         data-tab="grid"   data-filter="COOLDOWN" onclick="setNav(this)">COOLDOWN</div>
+    <div class="fp tab-log" data-tab="log"    data-filter=""         onclick="setNav(this)">LOG <span class="fp-count" id="nav-log-count">0</span></div>
+    <div class="hl-alert-pill" data-tab="alerts" data-filter=""      onclick="setNav(this)">🔔 <span id="nav-alert-count" style="color:#ffb300;font-size:12px;font-weight:700">0</span></div>
   </div>
   <div class="scan-status" id="scan-status">waiting for scan…</div>
+</div>
+
+<!-- ── HYPERLIQUID BALANCE STRIP ── -->
+<div id="hl-balance-strip" style="background:#0e0e1a;border:1px solid rgba(179,136,255,0.2);border-radius:6px;margin:10px 24px 0;padding:10px 16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <span style="font-family:'Bebas Neue',cursive;font-size:13px;color:#b388ff;letter-spacing:0.12em;font-weight:700">HYPERLIQUID ACCOUNT</span>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span id="hl-bal-ts" style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#ffffff;opacity:0.4">NOT YET FETCHED</span>
+      <button onclick="hlBalToggleMask()" id="hl-bal-eye" style="background:none;border:none;cursor:pointer;font-size:13px;color:#b388ff;padding:0 2px">👁</button>
+      <button onclick="hlBalFetch()" id="hl-bal-btn" style="background:none;border:1px solid rgba(179,136,255,0.2);border-radius:3px;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#b388ff;padding:3px 8px;cursor:pointer">⟳ FETCH</button>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px">
+    <div class="hl-bal-pill"><div class="hl-bal-label">EQUITY</div><div class="hl-bal-val" id="hl-bal-equity" style="color:#ffffff">—</div></div>
+    <div class="hl-bal-pill"><div class="hl-bal-label">AVAILABLE</div><div class="hl-bal-val" id="hl-bal-avail" style="color:#00e676">—</div></div>
+    <div class="hl-bal-pill"><div class="hl-bal-label">MARGIN USED</div><div class="hl-bal-val" id="hl-bal-margin" style="color:#b388ff">—</div></div>
+    <div class="hl-bal-pill"><div class="hl-bal-label">UNREALIZED</div><div class="hl-bal-val" id="hl-bal-pnl" style="color:#00e676">—</div></div>
+    <div class="hl-bal-pill"><div class="hl-bal-label">POSITIONS</div><div class="hl-bal-val" id="hl-bal-pos" style="color:#ffffff">—</div></div>
+  </div>
 </div>
 
 
