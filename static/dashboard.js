@@ -1898,26 +1898,33 @@ async function _ovFetch(sym, isFirst) {
   }
 
   function _ovVerdictHtml(d, dir) {
-    const isL   = dir !== 'SHORT';
-    const gates = (isL ? d.gate_long : d.gate_short) || [false, false, false, false];
-    const score = gates.filter(Boolean).length;
-    const names = ['J 15M', 'J 1H', 'STOCH K/D', isL ? 'BID DEPTH' : 'ASK DEPTH'];
-    const failing = names.filter((_, i) => !gates[i]);
-    const base = "padding:7px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.08em;text-align:center";
-    const sym = d.symbol;
-    const _btcV = (STATE?.pair_states||[]).find(p=>p.symbol==='BTC');
-    const _rgV = sym==='BTC'||!_btcV ? null : _btcRegime(_btcV);
-    const _corrV = BTC_CORRELATION[sym]??0.75;
-    const _exemptV = _corrV < 0.65;
-    if (_rgV?.state==='STOP' && _corrV>=0.75 && isL)
-      return `<div id="pov-verdict" style="${base};background:rgba(255,82,82,0.12);border-top:1px solid rgba(255,82,82,0.2);border-bottom:1px solid rgba(255,82,82,0.2);color:#ff4646">🚫 LONG BLOCKED — BTC J1H in STOP zone</div>`;
-    const _btcSuffix = !_rgV||_exemptV ? '' : _rgV.state==='CAUTION_LONG'||_rgV.state==='CAUTION_SHORT' ? ' · ⚠️ BTC caution' : _rgV.cls==='confirmed' ? ' · ✅ BTC confirmed' : '';
-    if (score === 4)
-      return `<div id="pov-verdict" style="${base};background:rgba(0,230,118,0.1);border-top:1px solid rgba(0,230,118,0.1);border-bottom:1px solid rgba(0,230,118,0.1);color:#00e676">✅ SIGNAL READY — all ${isL ? 'LONG' : 'SHORT'} gates passing${_btcSuffix}</div>`;
-    if (score === 3)
-      return `<div id="pov-verdict" style="${base};background:rgba(255,179,0,0.08);border-top:1px solid rgba(255,179,0,0.1);border-bottom:1px solid rgba(255,179,0,0.1);color:#ffb300">⏳ ALMOST READY — waiting for ${failing[0]}${_btcSuffix}</div>`;
-    return `<div id="pov-verdict" style="${base};background:rgba(255,82,82,0.07);border-top:1px solid rgba(255,82,82,0.1);border-bottom:1px solid rgba(255,82,82,0.1);color:#ff5252">❌ NOT READY — ${failing.join(', ')}${_btcSuffix}</div>`;
-  }
+      const isL   = dir !== 'SHORT';
+      const gates = (isL ? d.gate_long : d.gate_short) || [false, false, false, false];
+      const score = gates.filter(Boolean).length;
+      const names = ['J 15M', 'J 1H', 'STOCH K/D', isL ? 'BID DEPTH' : 'ASK DEPTH'];
+      const failing = names.filter((_, i) => !gates[i]);
+      const base = "padding:7px 16px;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:0.08em;text-align:center";
+      const sym = d.symbol;
+      const _btcG  = (STATE?.pair_states||[]).find(p => p.symbol === 'BTC');
+      const _corrG = (sym === 'BTC') ? 1.0 : (BTC_CORRELATION[sym] ?? 0.75);
+      const _rgG   = (sym === 'BTC' || !_btcG) ? null : _btcRegime(_btcG);
+      const _isExemptG  = _corrG < 0.65;
+      const _isHardGate = _corrG >= 0.75;
+      const _isAdvisory = _corrG >= 0.65 && _corrG < 0.75;
+      const _btcStop    = !_isExemptG && _rgG?.state === 'STOP';
+      const _btcCaution = !_isExemptG && (_rgG?.state === 'CAUTION_LONG' || _rgG?.state === 'CAUTION_SHORT');
+      const _btcConfirmed = _rgG?.state === 'CONFIRMED_LONG' || _rgG?.state === 'CONFIRMED_SHORT';
+      const _hardBlocked  = _btcStop && _isHardGate;
+      const _softWarning  = _btcCaution && (_isHardGate || _isAdvisory);
+      if (_hardBlocked && isL)
+        return `<div id="pov-verdict" style="${base};background:rgba(255,82,82,0.12);border-top:1px solid rgba(255,82,82,0.2);border-bottom:1px solid rgba(255,82,82,0.2);color:#ff4646">🚫 LONG BLOCKED — BTC J1H in STOP zone</div>`;
+      const _btcSuffix = _softWarning ? ' · ⚠️ BTC caution' : (_btcConfirmed && !_isExemptG) ? ' · ✅ BTC confirmed' : '';
+      if (score === 4)
+        return `<div id="pov-verdict" style="${base};background:rgba(0,230,118,0.1);border-top:1px solid rgba(0,230,118,0.1);border-bottom:1px solid rgba(0,230,118,0.1);color:#00e676">✅ SIGNAL READY — all ${isL ? 'LONG' : 'SHORT'} gates passing${_btcSuffix}</div>`;
+      if (score === 3)
+        return `<div id="pov-verdict" style="${base};background:rgba(255,179,0,0.08);border-top:1px solid rgba(255,179,0,0.1);border-bottom:1px solid rgba(255,179,0,0.1);color:#ffb300">⏳ ALMOST READY — waiting for ${failing[0]}${_btcSuffix}</div>`;
+      return `<div id="pov-verdict" style="${base};background:rgba(255,82,82,0.07);border-top:1px solid rgba(255,82,82,0.1);border-bottom:1px solid rgba(255,82,82,0.1);color:#ff5252">❌ NOT READY — ${failing.join(', ')}${_btcSuffix}</div>`;
+    }
 
   function _ovGateRowHtml(idPfx, name, passHtml, bodyHtml) {
     return `<div style="padding:10px 16px;border-bottom:1px solid #1a1a1a">
@@ -2089,33 +2096,56 @@ async function _ovFetch(sym, isFirst) {
 
   // ── Actions (kept) ────────────────────────────────────────────────────────────
   function _ovActionsHtml(d, state, dir, trade) {
-      const _btcA = (STATE?.pair_states||[]).find(p=>p.symbol==='BTC');
-      const _rgA = d.symbol==='BTC'||!_btcA ? null : _btcRegime(_btcA);
-      const _corrA = BTC_CORRELATION[d.symbol]??0.75;
-      const _btcBlocked = _rgA?.state==='STOP' && _corrA>=0.75;
-      const _btcCaution = (_rgA?.state==='CAUTION_LONG'||_rgA?.state==='CAUTION_SHORT') && _corrA>=0.65;
+      const sym = d.symbol;
+      const _btcG  = (STATE?.pair_states||[]).find(p => p.symbol === 'BTC');
+      const _corrG = (sym === 'BTC') ? 1.0 : (BTC_CORRELATION[sym] ?? 0.75);
+      const _rgG   = (sym === 'BTC' || !_btcG) ? null : _btcRegime(_btcG);
+      const _isExemptG  = _corrG < 0.65;
+      const _isHardGate = _corrG >= 0.75;
+      const _isAdvisory = _corrG >= 0.65 && _corrG < 0.75;
+      const _btcStop    = !_isExemptG && _rgG?.state === 'STOP';
+      const _btcCaution = !_isExemptG && (_rgG?.state === 'CAUTION_LONG' || _rgG?.state === 'CAUTION_SHORT');
+      const _btcConfirmed = _rgG?.state === 'CONFIRMED_LONG' || _rgG?.state === 'CONFIRMED_SHORT';
+      const _hardBlocked  = _btcStop && _isHardGate;
+      const _softWarning  = _btcCaution && (_isHardGate || _isAdvisory);
       const _bs = 'padding:3px 8px;border-radius:12px;font-size:7px;font-weight:700;letter-spacing:0.05em;font-family:\'JetBrains Mono\',monospace;cursor:pointer;border:1px solid';
       if (state === 'IN_TRADE' && trade) {
-        return '<button onclick="_ovCloseTrade(\'' + d.symbol + '\',\'' + trade.direction + '\')" style="' + _bs + ' #b388ff;color:#b388ff;background:#1a0e2e">🟣 CLOSE</button>'
-             + '<button onclick="_ovCloseTrade(\'' + d.symbol + '\',\'' + trade.direction + '\')" style="' + _bs + ' rgba(255,82,82,0.4);color:#ff5252;background:#1a0808">FORCE</button>';
+        return '<button onclick="_ovCloseTrade(\'' + sym + '\',\'' + trade.direction + '\')" style="' + _bs + ' #b388ff;color:#b388ff;background:#1a0e2e">\uD83D\uDFE3 CLOSE</button>'
+             + '<button onclick="_ovCloseTrade(\'' + sym + '\',\'' + trade.direction + '\')" style="' + _bs + ' rgba(255,82,82,0.4);color:#ff5252;background:#1a0808">FORCE</button>';
       }
       if (state === 'READY' && d.alert && d.alert_state !== 'STALE') {
-        if (_btcBlocked) {
-          return '<button disabled style="' + _bs + ' #333;color:#444;background:#0a0a0a;cursor:not-allowed">🚫 BLOCKED</button>';
-        }
         const lev = d.alert.leverage || 5;
-        if (_btcCaution) {
-          return '<button onclick="_ovOpen(\'' + d.symbol + '\',\'' + dir + '\',\'HL\',' + lev + ')" style="' + _bs + ' #ffb300;color:#ffb300;background:#1a1200">⚠️ OPEN</button>';
+        if (_hardBlocked) {
+          const warn = '<div style="font-size:8px;font-weight:700;color:#ff4646;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px;flex-basis:100%">\uD83D\uDEAB BTC J1H=' + ((_btcG?.j1h||0).toFixed(0)) + ' in STOP zone \u00B7 ' + ((_corrG*100).toFixed(0)) + '% corr \u00B7 wait for J1H &lt;20</div>';
+          return warn + '<button disabled style="' + _bs + ' #333;color:#444;background:#0a0a0a;cursor:not-allowed">\uD83D\uDEAB LONG BLOCKED</button>';
         }
-        return '<button onclick="_ovOpen(\'' + d.symbol + '\',\'' + dir + '\',\'HL\',' + lev + ')" style="' + _bs + ' #b388ff;color:#b388ff;background:#1a0e2e">🟣 OPEN</button>';
+        if (_softWarning) {
+          const warn = '<div style="font-size:8px;font-weight:700;color:#ffb300;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px;flex-basis:100%">\u26A0\uFE0F BTC J1H in caution zone \u2014 enter at your discretion</div>';
+          const openBtn = dir === 'LONG'
+            ? '<button onclick="_ovOpen(\'' + sym + '\',\'LONG\',\'HL\',' + lev + ')" style="' + _bs + ' #ffb300;color:#ffb300;background:#1a1200">\u26A0\uFE0F OPEN LONG \u2014 BTC CAUTION</button>'
+            : '<button onclick="_ovOpen(\'' + sym + '\',\'SHORT\',\'HL\',' + lev + ')" style="' + _bs + ' #ffb300;color:#ffb300;background:#1a1200">\u26A0\uFE0F OPEN SHORT \u2014 BTC CAUTION</button>';
+          return warn + openBtn;
+        }
+        return dir === 'LONG'
+          ? '<button onclick="_ovOpen(\'' + sym + '\',\'LONG\',\'HL\',' + lev + ')" style="' + _bs + ' #b388ff;color:#b388ff;background:#1a0e2e">\uD83D\uDFE3 OPEN LONG ON HL</button>'
+          : '<button onclick="_ovOpen(\'' + sym + '\',\'SHORT\',\'HL\',' + lev + ')" style="' + _bs + ' #b388ff;color:#b388ff;background:#1a0e2e">\uD83D\uDFE3 OPEN SHORT ON HL</button>';
       }
       const _ovSessHalt = (dir === 'LONG' ? d.session_halted_long : d.session_halted_short) || false;
       if (_ovSessHalt) {
-        return '<button disabled style="' + _bs + ' #333;color:#444;background:#0a0a0a;cursor:not-allowed">🚫 BLOCKED</button>';
+        return '<button disabled style="' + _bs + ' #333;color:#444;background:#0a0a0a;cursor:not-allowed">\uD83D\uDEAB BLOCKED</button>';
       }
       const _ovLgCDRem = (dir === 'LONG' ? d.large_sl_cooldown_long_remaining : d.large_sl_cooldown_short_remaining) || 0;
-      const watchTxt = _ovLgCDRem > 0 ? '⌛ CD ' + Math.floor(_ovLgCDRem/60) + 'm' : 'WATCHING HL';
-      return '<button disabled style="' + _bs + ' #ffb300;color:#ffb300;background:#1a1200;animation:flash 1s infinite">' + watchTxt + '</button>';
+      const watchTxt = _ovLgCDRem > 0 ? '\u231B CD ' + Math.floor(_ovLgCDRem/60) + 'm' : 'WATCHING HL';
+      const watchBtn = '<button disabled style="' + _bs + ' #ffb300;color:#ffb300;background:#1a1200;animation:flash 1s infinite">' + watchTxt + '</button>';
+      if (_hardBlocked) {
+        const note = '<div style="font-size:8px;font-weight:700;color:#ff4646;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px;flex-basis:100%">\uD83D\uDEAB BTC STOP zone \u2014 longs blocked until J1H drops below 20</div>';
+        return note + watchBtn;
+      }
+      if (_softWarning) {
+        const note = '<div style="font-size:8px;font-weight:700;color:#ffb300;font-family:\'JetBrains Mono\',monospace;margin-bottom:5px;flex-basis:100%">\u26A0\uFE0F BTC caution zone \u2014 monitor before entering</div>';
+        return note + watchBtn;
+      }
+      return watchBtn;
     }
 
   // ── Full render ───────────────────────────────────────────────────────────────
@@ -2215,88 +2245,100 @@ async function _ovFetch(sym, isFirst) {
 
   // ── Targeted update (no full re-render) ───────────────────────────────────────
   function _ovUpdate(pn, d) {
-    const state     = _ovState(d);
-    const dir       = _ovDir(d);
-    const trade     = d.in_trade_long || d.in_trade_short;
-    const prevState = pn.dataset.state;
+      const state     = _ovState(d);
+      const dir       = _ovDir(d);
+      const trade     = d.in_trade_long || d.in_trade_short;
+      const prevState = pn.dataset.state;
 
-    if (prevState === 'IN_TRADE' && state !== 'IN_TRADE') { _ovExit(pn, d); return; }
-    if (prevState !== state) { _ovRender(pn, d); return; }
+      if (prevState === 'IN_TRADE' && state !== 'IN_TRADE') { _ovExit(pn, d); return; }
+      if (prevState !== state) { _ovRender(pn, d); return; }
 
-    pn.dataset.state = state;
-    const isL  = dir !== 'SHORT';
-    const gates = (isL ? d.gate_long : d.gate_short) || [false, false, false, false];
-    const score = gates.filter(Boolean).length;
-
-    // Price
-    const pxEl = document.getElementById('pov-px');
-    if (pxEl) pxEl.textContent = fmtPrice(d.price);
-
-    // Change %
-    const chgEl = document.getElementById('pov-chg');
-    if (chgEl && d.change_24h != null) {
-      const c = d.change_24h;
-      chgEl.textContent = `${c >= 0 ? '+' : ''}${c.toFixed(2)}%`;
-      chgEl.style.color = c >= 0 ? '#00e676' : '#ff3d57';
-    }
-
-    // Re-render gate section (values update every 2 s from scanner)
-    const gatesEl = document.getElementById('pov-gates-wrap');
-    if (gatesEl) {
-      gatesEl.innerHTML =
-        _ovJ15Html(d, dir) +
-        _ovJ1hHtml(d, dir) +
-        _ovStochHtml(d, dir) +
-        _ovDepthHtml(d, dir) +
-        (score >= 3 ? _ovScanConfHtml(d, dir, score) : '');
-    }
-
-    // Verdict banner
-    const vEl = document.getElementById('pov-verdict');
-    if (vEl) vEl.outerHTML = _ovVerdictHtml(d, dir);
-
-    // Scan history
-    const histEl = document.getElementById('pov-scan-hist');
-    if (histEl) histEl.innerHTML = _ovScanHistHtml(d, dir);
-
-    // Trade P&L + age
-    if (state === 'IN_TRADE' && trade) {
-      const pnlEl = document.getElementById('pov-pnl-usd');
-      if (pnlEl) {
-        const pnl = trade.unrealized_pnl || 0;
-        pnlEl.textContent = `${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}`;
-        pnlEl.style.color = pnl >= 0 ? '#00e676' : '#ff3d57';
+      // Regime-change detection — full re-render if BTC J1H zone changed
+      const _hb = document.getElementById('pov-hdr-btns');
+      if (_hb) {
+        const _sym3 = document.getElementById('pair-ov-pn')?.dataset?.sym || '';
+        const _btcNow3 = (STATE?.pair_states||[]).find(p=>p.symbol==='BTC');
+        const _rgNow3  = _sym3==='BTC'||!_btcNow3 ? null : _btcRegime(_btcNow3);
+        if (_hb.dataset.lastRegime !== (_rgNow3?.state||'')) {
+          _hb.dataset.lastRegime = _rgNow3?.state || '';
+          _ovRender(pn, d);
+          return;
+        }
       }
-      const ageEl = document.getElementById('pov-age');
-      if (ageEl) {
-        const el = trade.elapsed_s || 0;
-        ageEl.textContent = el < 3600
-          ? `${Math.floor(el / 60)}m${el % 60}s`
-          : `${Math.floor(el / 3600)}h${Math.floor((el % 3600) / 60)}m`;
+
+      pn.dataset.state = state;
+      const isL  = dir !== 'SHORT';
+      const gates = (isL ? d.gate_long : d.gate_short) || [false, false, false, false];
+      const score = gates.filter(Boolean).length;
+
+      // Price
+      const pxEl = document.getElementById('pov-px');
+      if (pxEl) pxEl.textContent = fmtPrice(d.price);
+
+      // Change %
+      const chgEl = document.getElementById('pov-chg');
+      if (chgEl && d.change_24h != null) {
+        const c = d.change_24h;
+        chgEl.textContent = `${c >= 0 ? '+' : ''}${c.toFixed(2)}%`;
+        chgEl.style.color = c >= 0 ? '#00e676' : '#ff3d57';
+      }
+
+      // Re-render gate section (values update every 2 s from scanner)
+      const gatesEl = document.getElementById('pov-gates-wrap');
+      if (gatesEl) {
+        gatesEl.innerHTML =
+          _ovJ15Html(d, dir) +
+          _ovJ1hHtml(d, dir) +
+          _ovStochHtml(d, dir) +
+          _ovDepthHtml(d, dir) +
+          (score >= 3 ? _ovScanConfHtml(d, dir, score) : '');
+      }
+
+      // Verdict banner
+      const vEl = document.getElementById('pov-verdict');
+      if (vEl) vEl.outerHTML = _ovVerdictHtml(d, dir);
+
+      // Scan history
+      const histEl = document.getElementById('pov-scan-hist');
+      if (histEl) histEl.innerHTML = _ovScanHistHtml(d, dir);
+
+      // Trade P&L + age
+      if (state === 'IN_TRADE' && trade) {
+        const pnlEl = document.getElementById('pov-pnl-usd');
+        if (pnlEl) {
+          const pnl = trade.unrealized_pnl || 0;
+          pnlEl.textContent = `${pnl >= 0 ? '+' : ''}${Math.abs(pnl).toFixed(2)}`;
+          pnlEl.style.color = pnl >= 0 ? '#00e676' : '#ff3d57';
+        }
+        const ageEl = document.getElementById('pov-age');
+        if (ageEl) {
+          const el = trade.elapsed_s || 0;
+          ageEl.textContent = el < 3600
+            ? `${Math.floor(el / 60)}m${el % 60}s`
+            : `${Math.floor(el / 3600)}h${Math.floor((el % 3600) / 60)}m`;
+        }
+      }
+
+      // Actions (header buttons)
+      const actEl = document.getElementById('pov-hdr-btns');
+      if (actEl) actEl.innerHTML = _ovActionsHtml(d, state, dir, trade);
+
+      _ovPrevGates = gates;
+
+      // BTC regime card live refresh
+      const _btcNow = (STATE?.pair_states||[]).find(p => p.symbol==='BTC');
+      const _rnEl = document.getElementById('btc-regime-pn');
+      if (_rnEl && _btcNow) {
+        const _sym = document.getElementById('pair-ov-pn')?.dataset?.sym || '';
+        if (_sym && _sym !== 'BTC') {
+          const _cr = BTC_CORRELATION[_sym] ?? 0.75;
+          const _ex = _cr < 0.65;
+          const _rg = _ex ? {state:'EXEMPT',cls:'exempt',color:'#fff',label:'⚪ EXEMPT'} : _btcRegime(_btcNow);
+          _rnEl.className = _rg.cls;
+          _rnEl.innerHTML = _btcRegimeCardHtml(_sym, _btcNow, _rg, _cr);
+        }
       }
     }
-
-    // Actions
-    const actEl = document.getElementById('pov-hdr-btns');
-    if (actEl) actEl.innerHTML = _ovActionsHtml(d, state, dir, trade);
-
-    _ovPrevGates = gates;
-
-
-    // BTC regime card live refresh
-    const _btcNow = (STATE?.pair_states||[]).find(p => p.symbol==='BTC');
-    const _rnEl = document.getElementById('btc-regime-pn');
-    if (_rnEl && _btcNow) {
-      const _sym = document.getElementById('pair-ov-pn')?.dataset?.sym || '';
-      if (_sym && _sym !== 'BTC') {
-        const _cr = BTC_CORRELATION[_sym] ?? 0.75;
-        const _ex = _cr < 0.65;
-        const _rg = _ex ? {state:'EXEMPT',cls:'exempt',color:'#fff',label:'⚪ EXEMPT'} : _btcRegime(_btcNow);
-        _rnEl.className = _rg.cls;
-        _rnEl.innerHTML = _btcRegimeCardHtml(_sym, _btcNow, _rg, _cr);
-      }
-    }
-  }
   
 // ── Exit banner (3 s auto-close) ──────────────────────────────────────────────
 function _ovExit(pn, d) {
