@@ -22,13 +22,13 @@ _cooldowns:   dict[str, float] = {}   # keyed "BTCSHORT" / "BTCLONG" → expiry 
 _scan_count:  int              = 0
 _pending:     dict[str, dict]  = {}   # first-scan confirmed, awaiting 2nd
 _stale_prices: set[str]        = set()  # symbols with 2 consecutive missing prices
-  _btc_j1h: float = 50.0   # cached BTC J1H — updated each scan when BTC is processed
+_btc_j1h: float = 50.0   # cached BTC J1H — updated each scan when BTC is processed
 
-  BTC_CORRELATION: dict[str, float] = {
-      "ETH": 0.94, "SOL": 0.86, "XRP": 0.84, "DOGE": 0.87,
-      "LINK": 0.82, "AVAX": 0.80, "SUI": 0.82, "NEAR": 0.78,
-      "WIF": 0.65, "HYPE": 0.50, "ZEC": 0.40,
-  }
+BTC_CORRELATION: dict[str, float] = {
+    "ETH": 0.94, "SOL": 0.86, "XRP": 0.84, "DOGE": 0.87,
+    "LINK": 0.82, "AVAX": 0.80, "SUI": 0.82, "NEAR": 0.78,
+    "WIF": 0.65, "HYPE": 0.50, "ZEC": 0.40,
+}
 
 
 # ── Indicator helpers ─────────────────────────────────────────────────────────
