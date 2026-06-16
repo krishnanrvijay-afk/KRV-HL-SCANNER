@@ -49,17 +49,17 @@ class HLClient:
 
     async def _post(self, payload: dict) -> dict | list:
         async with self._sem:
-            resp = await self._http.post(HL_API_URL, json=payload)
-            if resp.status_code == 429:
-                coin = payload.get("req", {}).get("coin", payload.get("type", "?"))
-                print(f"[RATE LIMIT] {coin} 429 — backing off 3s")
-                await asyncio.sleep(3)
+            coin = payload.get("req", {}).get("coin", payload.get("type", "?"))
+            for attempt in range(3):
                 resp = await self._http.post(HL_API_URL, json=payload)
-                if resp.status_code == 429:
-                    print(f"[RATE LIMIT] {coin} 429 on retry — giving up")
-                    return None
-            resp.raise_for_status()
-            return resp.json()
+                if resp.status_code != 429:
+                    resp.raise_for_status()
+                    return resp.json()
+                print(f"[RATE LIMIT] {coin} 429 -- attempt {attempt + 1}/3")
+                if attempt < 2:
+                    await asyncio.sleep(5)
+            print(f"[RATE LIMIT] {coin} 429 on all 3 attempts -- giving up")
+            raise RuntimeError(f"Rate limited after 3 attempts: {coin}")
 
     async def get_price(self, symbol: str) -> Optional[float]:
         try:
@@ -75,6 +75,8 @@ class HLClient:
     async def get_all_prices(self) -> dict[str, float]:
         try:
             data = await self._post({"type": "allMids"})
+            if not data:
+                return {}
             return {k: float(v) for k, v in data.items() if v is not None}
         except Exception as e:
             print(f"[HLClient] get_all_prices error: {e}")
@@ -143,9 +145,11 @@ class HLClient:
             return {"bids": [], "asks": []}
 
     async def get_all_price_changes(self, symbols: list[str]) -> dict[str, float]:
-        """Returns dict of symbol → 24h pct change, computed from prevDayPx vs markPx."""
+        """Returns dict of symbol -> 24h pct change, computed from prevDayPx vs markPx."""
         try:
             data = await self._post({"type": "metaAndAssetCtxs"})
+            if not data:
+                return {}
             meta       = data[0]
             asset_ctxs = data[1]
             universe   = meta.get("universe", [])
