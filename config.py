@@ -11,7 +11,7 @@ PAIRS = ["DOGE", "SUI", "BTC", "LINK", "ETH", "NEAR", "XRP", "SOL", "WIF", "AVAX
 
 SCAN_INTERVAL_SECONDS  = 30
 PRICE_INTERVAL_SECONDS = 8
-PAPER_MODE             = True
+PAPER_MODE             = False
 
 # -- Live trading safety --------------------------------------------------------
 # When PAPER_MODE is False and LIVE_MANUAL_ENTRY_ONLY is True, the scanner will
