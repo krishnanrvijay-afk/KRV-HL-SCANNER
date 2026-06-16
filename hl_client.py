@@ -33,8 +33,9 @@ class HLClient:
             if not account_address:
                 raise ValueError("HL_WALLET_ADDRESS not set -- required for live trading")
             self._wallet_address = account_address
-            self._info = Info(HL_API_URL)
-            self._exchange = Exchange(acct, HL_API_URL, account_address=account_address)
+            _base_url = HL_API_URL.replace("/info", "")
+            self._info = Info(_base_url)
+            self._exchange = Exchange(acct, _base_url, account_address=account_address)
         except Exception as e:
             print(f"[HLClient] Failed to init live client: {e}")
 
