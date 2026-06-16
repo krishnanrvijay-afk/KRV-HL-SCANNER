@@ -50,6 +50,8 @@ async function fetchState() {
 }
 setInterval(fetchState, 2000);
 fetchState();
+hlAccFetch();
+setInterval(hlAccFetch, 30000);
 
 // Dismiss market popover on outside click
 document.addEventListener('click', e => {
