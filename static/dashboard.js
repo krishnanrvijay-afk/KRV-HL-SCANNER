@@ -427,7 +427,7 @@ function updateNavCounts() {
     }
   }
   document.getElementById('cb-badge').style.display    = circuit_breaker?.active ? 'block' : 'none';
-  renderResetSessionBtn();
+  // settings overlay handles session reset
 }
 
 //  Market popover 
@@ -2542,53 +2542,6 @@ async function _ovCloseTrade(sym, dir) {
   } catch (e) { alert('Request failed'); }
 }
 
-//  Reset Session 
-function renderResetSessionBtn() {
-  if (document.getElementById('reset-session-btn')) return;
-  const mb = document.getElementById('mode-badge');
-  if (!mb || !mb.parentNode) return;
-  const btn = document.createElement('button');
-  btn.id        = 'reset-session-btn';
-  btn.className = 'reset-session-btn';
-  btn.textContent = 'RESET SESSION';
-  btn.onclick   = showResetSessionModal;
-  mb.parentNode.insertBefore(btn, mb.nextSibling);
-}
-
-function showResetSessionModal() {
-  if (document.getElementById('reset-session-modal')) return;
-  const modal = document.createElement('div');
-  modal.id = 'reset-session-modal';
-  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:9999';
-  modal.innerHTML = [
-    '<div style="background:#111;border:1px solid rgba(255,170,0,0.4);border-radius:10px;padding:24px 28px;max-width:340px;width:90%;font-family:\'JetBrains Mono\',monospace">',
-    '<div style="color:#ffaa00;font-size:11px;font-weight:700;margin-bottom:12px;letter-spacing:0.08em">RESET SESSION</div>',
-    '<div style="color:#ccc;font-size:10px;line-height:1.6;margin-bottom:18px">This will reset daily P&amp;L, consecutive losses, circuit breaker, and all cooldowns. Trade log will NOT be cleared. Confirm?</div>',
-    '<div style="display:flex;gap:10px">',
-    '<button onclick="confirmResetSession()" style="flex:1;padding:8px 0;background:transparent;border:1px solid #ffaa00;border-radius:6px;color:#ffaa00;font-family:\'JetBrains Mono\',monospace;font-size:10px;font-weight:700;cursor:pointer">CONFIRM</button>',
-    '<button onclick="cancelResetSession()" style="flex:1;padding:8px 0;background:transparent;border:1px solid #555;border-radius:6px;color:#888;font-family:\'JetBrains Mono\',monospace;font-size:10px;font-weight:700;cursor:pointer">CANCEL</button>',
-    '</div></div>',
-  ].join('');
-  document.body.appendChild(modal);
-}
-
-function cancelResetSession() {
-  const m = document.getElementById('reset-session-modal');
-  if (m) m.remove();
-}
-
-async function confirmResetSession() {
-  try {
-    const r = await fetch('/api/reset-session', { method: 'POST' });
-    if (!r.ok) {
-      const d = await r.json();
-      alert('Reset failed: ' + (d.detail || 'error'));
-      return;
-    }
-    cancelResetSession();
-    fetchState();
-  } catch (e) { alert('Request failed'); }
-}
 
 // Injected styles for overlay card, session halt + large SL CD pills and RESET SESSION button
 (function _injectStyles() {
@@ -2606,8 +2559,6 @@ async function confirmResetSession() {
   s.textContent = [
     '.pill-halted{background:rgba(255,68,68,0.12);color:#ff4444;border:1px solid rgba(255,68,68,0.4);border-radius:4px;font-size:8px;padding:2px 6px;font-family:\'JetBrains Mono\',monospace;font-weight:700}',
     '.pill-cd-large{background:rgba(255,170,0,0.12);color:#ffaa00;border:1px solid rgba(255,170,0,0.4);border-radius:4px;font-size:8px;padding:2px 6px;font-family:\'JetBrains Mono\',monospace;font-weight:700}',
-    '.reset-session-btn{background:transparent;border:1px solid #ffaa00;border-radius:5px;color:#ffaa00;font-family:\'JetBrains Mono\',monospace;font-size:9px;font-weight:700;padding:3px 8px;cursor:pointer;letter-spacing:0.06em;margin-left:6px;vertical-align:middle}',
-    '.reset-session-btn:hover{background:rgba(255,170,0,0.1)}',
     '#pair-ov-bd{position:fixed;inset:0;background:rgba(0,0,0,0.92);backdrop-filter:blur(8px);display:flex!important;align-items:center!important;justify-content:center!important;gap:12px!important;padding:20px!important;z-index:9000}',
     '#pair-ov-pn{width:340px;flex-shrink:0;}',
     '.pov-actions{display:flex;flex-wrap:wrap;gap:8px}',
@@ -2679,4 +2630,118 @@ function fmtPrice(p) {
 function fmtCd(seconds) {
   if (seconds < 60) return `${seconds}s`;
   return `${Math.floor(seconds/60)}m`;
+}
+
+
+// -- Settings overlay (purple / HL) ----------------------------------------
+function openSettingsSheet() {
+  var bd = document.getElementById('hl-cfg-backdrop');
+  if (!bd) return;
+  bd.classList.add('open');
+  cfgFetch();
+}
+
+function closeSettingsSheet() {
+  var bd = document.getElementById('hl-cfg-backdrop');
+  if (bd) bd.classList.remove('open');
+}
+
+async function cfgFetch() {
+  try {
+    var r = await fetch('/api/settings');
+    if (!r.ok) return;
+    var d = await r.json();
+    document.getElementById('cfg-paper').checked    = !!d.paper_mode;
+    document.getElementById('cfg-tg').checked       = !!d.telegram_enabled;
+    document.getElementById('cfg-cooldown').value   = d.cooldown_seconds ?? 1800;
+    document.getElementById('cfg-depth').value      = d.depth_gate_pct ?? 55;
+    document.getElementById('cfg-adx').value        = d.adx_fade_max ?? 60;
+    document.getElementById('cfg-margin').value     = d.margin_per_trade ?? 2000;
+    document.getElementById('cfg-loss-limit').value = Math.abs(d.daily_loss_limit ?? 800);
+    document.getElementById('cfg-circuit').value    = d.consecutive_loss_stop ?? 3;
+    document.getElementById('cfg-j15m-os').value    = d.j15m_short_gate ?? 80;
+    document.getElementById('cfg-j15m-ob').value    = d.j15m_long_gate ?? 20;
+    document.getElementById('cfg-j1h-os').value     = d.j1h_short_min ?? 60;
+    document.getElementById('cfg-j1h-ob').value     = d.j1h_long_max ?? 40;
+    cfgUpdatePaperLabel();
+    cfgUpdateTgLabel();
+  } catch(e) { console.warn('cfgFetch error', e); }
+}
+
+function cfgUpdatePaperLabel() {
+  var on  = document.getElementById('cfg-paper').checked;
+  var lbl = document.getElementById('cfg-paper-lbl');
+  var sub = document.getElementById('cfg-paper-sub');
+  if (lbl) { lbl.style.color = on ? '#22c55e' : '#ef4444'; lbl.textContent = on ? 'PAPER MODE' : 'LIVE MODE'; }
+  if (sub) { sub.style.color = on ? '#22c55e' : '#ef4444'; sub.textContent = on ? 'PAPER \u2014 no real funds' : 'LIVE \u2014 real funds at risk'; }
+}
+
+function cfgUpdateTgLabel() {
+  var on  = document.getElementById('cfg-tg').checked;
+  var sub = document.getElementById('cfg-tg-sub');
+  if (sub) { sub.style.color = on ? '#22c55e' : '#ef4444'; sub.textContent = on ? 'ON' : 'OFF'; }
+}
+
+async function cfgSave() {
+  var btn  = document.getElementById('cfg-save-btn');
+  var body = {
+    paper_mode:            document.getElementById('cfg-paper').checked,
+    telegram_enabled:      document.getElementById('cfg-tg').checked,
+    cooldown_seconds:      Number(document.getElementById('cfg-cooldown').value),
+    depth_gate_pct:        Number(document.getElementById('cfg-depth').value),
+    adx_fade_max:          Number(document.getElementById('cfg-adx').value),
+    margin_per_trade:      Number(document.getElementById('cfg-margin').value),
+    daily_loss_limit:      -Math.abs(Number(document.getElementById('cfg-loss-limit').value)),
+    consecutive_loss_stop: Number(document.getElementById('cfg-circuit').value),
+    j15m_short_gate:       Number(document.getElementById('cfg-j15m-os').value),
+    j15m_long_gate:        Number(document.getElementById('cfg-j15m-ob').value),
+    j1h_short_min:         Number(document.getElementById('cfg-j1h-os').value),
+    j1h_long_max:          Number(document.getElementById('cfg-j1h-ob').value),
+  };
+  try {
+    var r = await fetch('/api/settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    if (!r.ok) { alert('Save failed'); return; }
+    var orig = btn.textContent;
+    btn.textContent = 'SAVED';
+    btn.style.background = '#22c55e';
+    setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 1500);
+  } catch(e) { alert('Request failed'); }
+}
+
+var _cfgResetArmed = false;
+var _cfgResetTimer = null;
+
+function cfgResetArm() {
+  var btn = document.getElementById('cfg-reset-btn');
+  if (!btn) return;
+  if (!_cfgResetArmed) {
+    _cfgResetArmed = true;
+    btn.classList.add('armed');
+    btn.textContent = 'TAP TO CONFIRM';
+    _cfgResetTimer = setTimeout(function() {
+      _cfgResetArmed = false;
+      btn.classList.remove('armed');
+      btn.textContent = 'RESET SESSION';
+    }, 3000);
+  } else {
+    clearTimeout(_cfgResetTimer);
+    _cfgResetArmed = false;
+    _cfgDoReset(btn);
+  }
+}
+
+async function _cfgDoReset(btn) {
+  try {
+    var r = await fetch('/api/reset-session', { method: 'POST' });
+    btn.classList.remove('armed');
+    if (r.ok) {
+      btn.classList.add('done');
+      btn.textContent = 'RESET COMPLETE';
+      setTimeout(function() { btn.classList.remove('done'); btn.textContent = 'RESET SESSION'; }, 2000);
+      fetchState();
+    } else {
+      btn.textContent = 'RESET SESSION';
+      alert('Reset failed');
+    }
+  } catch(e) { btn.textContent = 'RESET SESSION'; alert('Request failed'); }
 }
