@@ -12,13 +12,20 @@
   /* -- HEADER V2 -- */
   .header { display: flex; flex-direction: column; align-items: stretch; padding: 10px 16px 8px; gap: 8px; border-bottom: 1px solid #1a1a1a; background: #0a0a0a; position: sticky; top: 0; z-index: 200; }
   .hdr-line1 { display: flex; align-items: center; justify-content: space-between; }
-  .logo { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 20px; font-weight: 400; letter-spacing: 2.5px; display: flex; align-items: center; }
+  .logo { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 20px; font-weight: 400; letter-spacing: 0.035em; display: flex; align-items: center; }
   .hdr-line1-right { display: flex; align-items: center; gap: 8px; }
   .mode-badge { font-family: 'JetBrains Mono', ui-monospace, Menlo, monospace; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 4px; letter-spacing: 0.5px; }
   .mode-badge-paper       { background: rgba(100,160,255,0.1);  color: #66aaff; border: 1px solid rgba(100,160,255,0.35); }
   .mode-badge-live-safe   { background: rgba(0,230,118,0.1);    color: #00e676; border: 1px solid rgba(0,230,118,0.3); }
   .mode-badge-live-danger { background: rgba(255,61,87,0.15);   color: #ff3d57; border: 1px solid rgba(255,61,87,0.45); animation: danger-pulse 1.2s ease-in-out infinite; }
   @keyframes danger-pulse { 0%,100% { box-shadow: none } 50% { box-shadow: 0 0 8px rgba(255,61,87,0.5) } }
+  .priv-btn { position:relative; width:38px; height:38px; background:none; border:none; cursor:pointer; font-size:22px; line-height:1; display:inline-flex; align-items:center; justify-content:center; padding:0; flex-shrink:0; opacity:0.7; transition:opacity 0.15s; }
+  .priv-btn:hover { opacity:1; }
+  .priv-btn::after { content:''; display:none; position:absolute; width:2px; height:140%; background:#ff4444; top:50%; left:50%; transform:translate(-50%,-50%) rotate(45deg); border-radius:1px; pointer-events:none; }
+  .priv-btn.masked::after { display:block; }
+  .scans-pill { display:flex; align-items:center; gap:4px; background:#0d0d0d; border:1px solid #1e1e1e; border-radius:5px; padding:3px 8px; }
+  .scans-pill-lbl { font-family:'JetBrains Mono',ui-monospace,Menlo,monospace; font-size:8px; font-weight:600; color:#555; letter-spacing:0.08em; text-transform:uppercase; }
+  .scans-pill-val { font-family:'Bebas Neue',Impact,sans-serif; font-size:15px; font-weight:400; color:#fff; line-height:1; }
   .hdr-line2 { display: flex; gap: 6px; }
   .hdr-stat-pill { flex: 1; display: flex; align-items: center; justify-content: space-between; background: #0d0d0d; border: 1px solid #1e1e1e; border-radius: 8px; padding: 6px 10px; cursor: pointer; transition: border-color 0.15s; min-width: 0; overflow: hidden; }
   .hdr-stat-pill:hover { border-color: #2e2e2e; }
@@ -558,11 +565,12 @@
 
 <div class="header">
   <div class="hdr-line1">
-    <div class="logo"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#a855f7;margin-right:10px;flex-shrink:0"></span>BOUNCE SCANNER <span style="color:#a855f7">II</span></div>
+    <div class="logo"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#a855f7;margin-right:10px;flex-shrink:0"></span>BOUNCE SCANNER&nbsp;&nbsp;<span style="color:#a855f7">II</span></div>
     <div class="hdr-line1-right">
       <div id="mode-badge" class="mode-badge" style="display:none;"></div>
       <div id="cb-badge" style="display:none;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;background:rgba(255,68,68,0.1);color:#ff4444;border:1px solid rgba(255,68,68,0.3);">&#9889; CB</div>
-      <button id="hl-priv-toggle" onclick="hlAccToggleMask(event)" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;padding:0 2px;opacity:0.7;transition:opacity 0.15s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">&#x1F576;</button>
+      <div id="scans-pill" class="scans-pill"><span class="scans-pill-lbl">SCANS</span><span class="scans-pill-val" id="h-scans-live">0</span></div>
+      <button id="hl-priv-toggle" class="priv-btn masked" onclick="hlAccToggleMask(event)">&#x1F441;</button>
       <button id="settings-gear-pill" onclick="openSettingsSheet()" style="background:none;border:none;cursor:pointer;font-size:22px;line-height:1;color:#a855f7;padding:0 3px;flex-shrink:0;opacity:0.85;transition:opacity 0.15s" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.85'">&#9881;</button>
     </div>
   </div>

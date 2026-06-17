@@ -91,11 +91,10 @@ function hlAccCloseCard() {
 function hlAccToggleMask(e) {
     if (e) e.stopPropagation();
     _hlAccMasked = !_hlAccMasked;
-    const icon = _hlAccMasked ? '&#x1F576;' : '&#x1F441;';
     const eye1 = document.getElementById('hl-priv-toggle');
-    if (eye1) eye1.innerHTML = icon;
+    if (eye1) eye1.classList.toggle('masked', _hlAccMasked);
     const eye2 = document.getElementById('hl-acc-pill-eye');
-    if (eye2) eye2.innerHTML = icon;
+    if (eye2) eye2.innerHTML = _hlAccMasked ? '&#x1F576;' : '&#x1F441;';
     _hlAccRender();
     if (STATE) renderHeader();
   }
@@ -141,7 +140,7 @@ function _hlAccRender() {
     const msk = _hlAccMasked;
     // Sync eye icon with current mask state
     const eye1 = document.getElementById('hl-priv-toggle');
-    if (eye1) eye1.innerHTML = msk ? '&#x1F576;' : '&#x1F441;';
+    if (eye1) eye1.classList.toggle('masked', msk);
     const eye2 = document.getElementById('hl-acc-pill-eye');
     if (eye2) eye2.innerHTML = msk ? '&#x1F576;' : '&#x1F441;';
     // Pill equity value -- respects mask (legacy hidden element)
@@ -352,48 +351,12 @@ function updateNavCounts() {
     const el = document.getElementById('btc-regime-pill');
     if (!el || !STATE) return;
     const r = _getBtcRegime();
-    const styles = {
-      long:    'background:linear-gradient(135deg,#081a08 0%,#040d04 100%);border:1.5px solid #00e67666;box-shadow:0 0 20px rgba(0,230,118,0.25),0 0 40px rgba(0,230,118,0.10),inset 0 1px 0 rgba(0,230,118,0.1);',
-      short:   'background:linear-gradient(135deg,#1a0808 0%,#0d0404 100%);border:1.5px solid #ff525266;box-shadow:0 0 20px rgba(255,82,82,0.25),0 0 40px rgba(255,82,82,0.10),inset 0 1px 0 rgba(255,82,82,0.1);',
-      caution: 'background:linear-gradient(135deg,#1a1200 0%,#0d0900 100%);border:1.5px solid #ffb30066;box-shadow:0 0 20px rgba(255,179,0,0.20),0 0 40px rgba(255,179,0,0.08),inset 0 1px 0 rgba(255,179,0,0.1);',
-      stop:    'background:linear-gradient(135deg,#1a0808 0%,#0d0404 100%);border:1.5px solid #ff525288;box-shadow:0 0 24px rgba(255,82,82,0.30),0 0 48px rgba(255,82,82,0.12),inset 0 1px 0 rgba(255,82,82,0.15);animation:stopPulse 2s ease-in-out infinite;',
-      unknown: 'background:#0d0d0d;border:1px solid #333;',
-    };
-    const j1hGlow = {
-      long:    'color:#00e676;text-shadow:0 0 20px rgba(0,230,118,0.6),0 0 40px rgba(0,230,118,0.3);',
-      short:   'color:#ff4646;text-shadow:0 0 20px rgba(255,70,70,0.6),0 0 40px rgba(255,70,70,0.3);',
-      caution: 'color:#ffb300;text-shadow:0 0 20px rgba(255,179,0,0.6),0 0 40px rgba(255,179,0,0.3);',
-      stop:    'color:#ff4646;text-shadow:0 0 20px rgba(255,70,70,0.8),0 0 40px rgba(255,70,70,0.4);',
-      unknown: 'color:#555;',
-    };
-    const leftBg = {
-      long:'rgba(0,230,118,0.08)', short:'rgba(255,82,82,0.08)',
-      caution:'rgba(255,179,0,0.08)', stop:'rgba(255,82,82,0.10)', unknown:'transparent'
-    };
-    const cursorColor = { long:'#00e676', short:'#ff4646', caution:'#ffb300', stop:'#ff4646', unknown:'#555' };
-    const cursorGlow  = { long:'0 0 6px #00e676', short:'0 0 6px #ff4646', caution:'0 0 6px #ffb300', stop:'0 0 8px #ff4646', unknown:'none' };
-    const kDir = r.stochK > r.stochD ? '' : '';
-    el.style.cssText = `display:flex;align-items:center;gap:0;border-radius:8px;overflow:hidden;cursor:pointer;flex-shrink:0;transition:transform 0.1s;${styles[r.cls]||styles.unknown}`;
-    el.innerHTML = `
-      <div style="padding:8px 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:64px;background:${leftBg[r.cls]||'transparent'}">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:7px;font-weight:700;color:#fff;opacity:0.6;letter-spacing:0.08em;margin-bottom:1px">BTC J1H</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;${j1hGlow[r.cls]||j1hGlow.unknown}">${r.j1h.toFixed(0)}</div>
-      </div>
-      <div style="padding:8px 12px;display:flex;flex-direction:column;justify-content:center;gap:2px;border-left:1px solid rgba(255,255,255,0.06)">
-        <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;color:${r.color};letter-spacing:0.06em">${r.label}</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:#fff;opacity:0.7">K=${r.stochK.toFixed(0)} ${kDir} D=${r.stochD.toFixed(0)}  J15M ${r.j15m.toFixed(0)}</div>
-        <div style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:700;color:#fff;line-height:1.5;margin-top:2px;padding-top:3px;border-top:1px solid rgba(255,255,255,0.06);max-width:220px">${r.narrative}</div>
-        <div style="position:relative;margin-top:3px">
-          <div style="display:flex;height:3px;border-radius:2px;overflow:hidden;width:100%">
-            <div style="flex:2;background:rgba(0,230,118,0.5)"></div>
-            <div style="flex:2;background:rgba(255,179,0,0.4)"></div>
-            <div style="flex:2;background:rgba(255,82,82,0.6)"></div>
-            <div style="flex:2;background:rgba(255,179,0,0.4)"></div>
-            <div style="flex:2;background:rgba(255,82,82,0.5)"></div>
-          </div>
-          <div style="position:absolute;top:-2px;bottom:-2px;width:3px;border-radius:2px;transform:translateX(-50%);left:${Math.min(99,Math.max(1,r.j1h))}%;background:${cursorColor[r.cls]};box-shadow:${cursorGlow[r.cls]}"></div>
-        </div>
-      </div>`;
+    const dot = r.cls === 'stop'
+      ? 'background:' + r.color + ';box-shadow:0 0 6px ' + r.color + ';animation:stopPulse 2s infinite'
+      : 'background:' + r.color + ';box-shadow:0 0 4px ' + r.color;
+    el.style.cssText = 'display:flex;align-items:center;gap:5px;background:' + r.color + '11;border:1px solid ' + r.color + '44;border-radius:4px;padding:3px 9px;cursor:default;flex-shrink:0';
+    el.innerHTML = '<div style="width:7px;height:7px;border-radius:50%;' + dot + ';flex-shrink:0"></div>'
+      + '<span style="font-family:\'JetBrains Mono\',monospace;font-size:9px;font-weight:700;color:' + r.color + ';letter-spacing:0.05em;white-space:nowrap">BTC J1H ' + r.j1h.toFixed(0) + '  ' + r.label.trim() + '</span>';
   }
 
   function _renderJmapRegimeBadge() {
@@ -439,6 +402,8 @@ function updateNavCounts() {
   if (_posEl)   _posEl.textContent   = account?.slots_used || 0;
   const _scansEl = document.getElementById('h-scans');
   if (_scansEl) _scansEl.textContent = scan_count || 0;
+  const _scansLive = document.getElementById('h-scans-live');
+  if (_scansLive) _scansLive.textContent = scan_count || 0;
   const modeBadge = document.getElementById('mode-badge');
   if (modeBadge) {
     if (account?.paper_mode) {
