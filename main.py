@@ -103,7 +103,7 @@ class AppState:
             entry   = t["entry_price"]
             current = self.prices.get(t["symbol"], entry)
             dir_    = t["direction"]
-            size    = t.get("size", 0)
+            size    = t.get("remaining_size", t.get("size", 0))
             margin  = t.get("margin", 0)
             lev     = t.get("leverage", 1)
             sl_dist = t.get("sl_dist", 0) or 0
@@ -1522,7 +1522,7 @@ async def get_pair(symbol: str):
         cur   = app_state.prices.get(symbol, t["entry_price"])
         entry = t["entry_price"]
         dir_  = t["direction"]
-        size  = t.get("size",   0)
+        size  = t.get("remaining_size", t.get("size", 0))
         mg    = t.get("margin", 0)
         lev   = t.get("leverage", 1)
         sl_d  = t.get("sl_dist", 0) or 0
