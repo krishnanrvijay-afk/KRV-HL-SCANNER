@@ -559,6 +559,57 @@
   .perf-at-item { display:flex; flex-direction:column; gap:2px; }
   .perf-at-label { font-size:8px; font-weight:800; color:#555; letter-spacing:1px; text-transform:uppercase; }
   .perf-at-val { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; }
+
+  /* ── LIVE TRADES TAB ── */
+  .fp.tab-live { background: linear-gradient(135deg, #1a0d2e 0%, #0d1a10 100%); border-color: rgba(168,85,247,0.3); }
+  .fp.tab-live .tl-lbl { background: linear-gradient(90deg, #a855f7, #22c55e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700; }
+  .fp.tab-live.active { background: linear-gradient(135deg, #2d1a4a 0%, #0f2a18 100%); border-color: rgba(168,85,247,0.55); box-shadow: -4px 0 12px rgba(168,85,247,0.2), 4px 0 12px rgba(34,197,94,0.2); }
+  .fp-count-live { display: inline-block; border-radius: 8px; padding: 0 5px; margin-left: 3px; font-family: 'Bebas Neue', Impact, sans-serif; font-size: 24px; font-weight: 400; vertical-align: middle; line-height: 1; color: rgba(255,255,255,0.35); }
+  .fp-count-live.has-live { background: linear-gradient(90deg, #a855f7, #22c55e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; filter: drop-shadow(0 0 4px rgba(168,85,247,0.5)); }
+  @keyframes liveDot { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+  @keyframes liveTabPulse { 0%,100% { box-shadow: -4px 0 12px rgba(168,85,247,0.2), 4px 0 12px rgba(34,197,94,0.2); } 50% { box-shadow: -6px 0 20px rgba(168,85,247,0.5), 6px 0 20px rgba(34,197,94,0.5); } }
+  .fp.tab-live.live-pulse { animation: liveTabPulse 0.6s ease-in-out 3; }
+  /* ── LIVE TRADE OVERLAY ── */
+  #lt-ov-bd { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); backdrop-filter: blur(8px); z-index: 9500; align-items: center; justify-content: center; padding: 16px; }
+  #lt-ov-bd.open { display: flex; }
+  #lt-ov-sheet { width: 100%; max-width: 960px; max-height: 720px; background: #080808; border: 1px solid #1e1e1e; border-radius: 12px; display: grid; grid-template-rows: auto 1fr auto; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.8); }
+  #lt-ov-hdr { padding: 16px 20px 12px; border-bottom: 1px solid #1a1a1a; display: flex; align-items: flex-start; gap: 12px; }
+  #lt-ov-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0; overflow: hidden; min-height: 0; }
+  #lt-ov-left { padding: 16px 20px; border-right: 1px solid #111; overflow-y: auto; }
+  #lt-ov-right { padding: 16px 20px; overflow-y: auto; }
+  #lt-ov-ftr { padding: 12px 20px; border-top: 1px solid #1a1a1a; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; background: #050505; }
+  .lt-sec-lbl { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; color: #ffffff; letter-spacing: 0.18em; margin-bottom: 8px; }
+  .lt-tbl { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  .lt-tbl th { font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; color: #ffffff; text-align: left; padding: 4px 6px; border-bottom: 1px solid #1a1a1a; }
+  .lt-tbl td { font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; color: #ffffff; padding: 5px 6px; border-bottom: 1px solid #0f0f0f; }
+  .lt-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+  .lt-stat-cell { background: #0d0d0d; border: 1px solid #1a1a1a; border-radius: 5px; padding: 8px 10px; }
+  .lt-stat-lbl { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; color: #ffffff; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .lt-stat-val { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 20px; color: #ffffff; }
+  .lt-levels-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 12px; }
+  .lt-lvl-cell { background: #0d0d0d; border: 1px solid #1a1a1a; border-radius: 5px; padding: 8px 6px; text-align: center; }
+  .lt-lvl-lbl { font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 700; color: #ffffff; letter-spacing: 0.06em; margin-bottom: 3px; }
+  .lt-lvl-val { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 16px; color: #ffffff; }
+  .lt-bullet { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; }
+  .lt-bullet-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .lt-bullet-text { font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 600; color: #ffffff; line-height: 1.5; }
+  .lt-arm-btn { width: 100%; padding: 13px; border-radius: 6px; border: none; font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; cursor: pointer; transition: all 0.2s; }
+  .lt-arm-btn.armed { background: linear-gradient(135deg, #16a34a, #15803d); color: #000; }
+  .lt-arm-btn.idle { background: #111; border: 1px solid #2a2a2a; color: #fff; }
+  .lt-arm-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .lt-confirm-input { width: 100%; background: #0d0d0d; border: 1px solid #2a2a2a; border-radius: 5px; padding: 10px 12px; color: #fff; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; outline: none; box-sizing: border-box; }
+  .lt-confirm-input:focus { border-color: #a855f7; }
+  .lt-cd-timer { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #fff; letter-spacing: 0.1em; }
+  .lt-cd-timer.urgent { color: #ff4444; animation: danger-pulse 0.8s ease-in-out infinite; }
+  /* ── OPEN LIVE button ── */
+  .ac-btn-live { flex: 1.4; background: linear-gradient(135deg, #16a34a, #15803d); color: #000; border: none; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .ac-btn-live:disabled { opacity: 0.45; cursor: not-allowed; }
+  /* ── LIVE POSITION CARD ── */
+  .lpc { background: radial-gradient(circle at 0% 0%, rgba(34,197,94,0.07) 0%, transparent 60%), #090909; border: 1px solid rgba(34,197,94,0.25); border-left: 3px solid #a855f7; border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .lpc-live-badge { display: inline-flex; align-items: center; gap: 4px; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.35); border-radius: 10px; padding: 2px 7px; font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; color: #22c55e; letter-spacing: 0.05em; }
+  .lpc-live-dot { width: 6px; height: 6px; background: #22c55e; border-radius: 50%; animation: liveDot 1.2s ease-in-out infinite; }
+  .lpc-close-btn { width: 100%; padding: 11px; background: linear-gradient(135deg, #16a34a, #15803d); border: none; border-radius: 5px; color: #000; font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 800; letter-spacing: 0.1em; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .lpc-close-btn:hover { opacity: 0.88; }
 </style>
 </head>
 <body>
@@ -599,6 +650,7 @@
     <div class="fp active"  data-tab="grid"   data-filter="ALL"      onclick="setNav(this)">ALL</div>
     <div class="fp tab-pos" data-tab="pos"    data-filter=""         onclick="setNav(this)">POSITIONS <span class="fp-count" id="nav-pos-count">0</span></div>
     <div class="fp tab-log" data-tab="log"    data-filter=""         onclick="setNav(this)">LOG <span class="fp-count fp-count-log" id="nav-log-count">0</span></div>
+    <div class="fp tab-live" data-tab="live" data-filter="" onclick="setNav(this)"><span class="tl-lbl">LIVE TRADES</span> <span class="fp-count-live" id="nav-live-count">0</span></div>
     <div class="hl-alert-pill" data-tab="alerts" data-filter=""      onclick="setNav(this)">&#x1F514; <span id="nav-alert-count" style="color:#ffb300;font-size:15px;font-weight:700;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace">0</span></div>
   </div>
   <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
@@ -712,6 +764,14 @@
   <div id="perf-panel"></div>
 </div>
 
+
+
+<!-- LIVE TRADES TAB -->
+<div id="tab-live" style="display:none">
+  <div class="pos-grid" id="live-grid">
+    <div class="no-content">No live positions open</div>
+  </div>
+</div>
 
 <script>
   const SCAN_INTERVAL  = {{ scan_interval }};
@@ -916,5 +976,34 @@
       </div>
     </div>
   </div>
+
+<!-- LIVE TRADE OVERLAY -->
+<div id="lt-ov-bd" onclick="if(event.target===this)closeLiveOverlay()">
+  <div id="lt-ov-sheet">
+    <div id="lt-ov-hdr">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+          <span id="lt-ov-sym" style="font-family:'Bebas Neue',Impact,sans-serif;font-size:32px;color:#ffffff;line-height:1"></span>
+          <span id="lt-ov-tags" style="display:flex;gap:4px;flex-wrap:wrap"></span>
+        </div>
+        <div id="lt-ov-sub" style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#ffffff;letter-spacing:0.08em;margin-bottom:4px"></div>
+        <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;color:#ff4444;letter-spacing:0.08em">REAL CAPITAL AT RISK — THIS ORDER CANNOT BE UNDONE</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+        <button style="background:none;border:none;cursor:pointer;font-size:16px;color:#888;padding:0;line-height:1" onclick="closeLiveOverlay()">&#x2715;</button>
+        <div class="lt-cd-timer" id="lt-cd-timer">--:--</div>
+      </div>
+    </div>
+    <div id="lt-ov-body">
+      <div id="lt-ov-left" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#fff;text-align:center;padding:40px">Loading…</div>
+      <div id="lt-ov-right"></div>
+    </div>
+    <div id="lt-ov-ftr">
+      <div id="lt-ov-confirm"></div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:600;color:#ffffff;line-height:1.7;align-self:center">Submits a real order on Hyperliquid.<br>Real capital at risk. Cannot be undone.</div>
+    </div>
+  </div>
+</div>
+
   </body>
 </html>
