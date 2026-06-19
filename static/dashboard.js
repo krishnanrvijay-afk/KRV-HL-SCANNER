@@ -298,7 +298,6 @@ function renderMarketHealth() {
 function render() {
   renderHeader();
   _renderBtcRegimePill();
-  _renderJmapRegimeBadge();
   updateNavCounts();
   updateScanStatus();
   renderBanner();
