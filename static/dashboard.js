@@ -2978,6 +2978,7 @@ async function cfgFetch() {
     document.getElementById('cfg-j1h-ob').value     = d.j1h_long_max ?? 40;
     cfgUpdatePaperLabel();
     cfgUpdateTgLabel();
+    cfgFetchIdentity();
   } catch(e) { console.warn('cfgFetch error', e); }
 }
 
@@ -3058,3 +3059,115 @@ async function _cfgDoReset(btn) {
     }
   } catch(e) { btn.textContent = 'RESET SESSION'; alert('Request failed'); }
 }
+
+  // -- Bot identity section --------------------------------------------------------
+
+  async function cfgFetchIdentity() {
+    var body = document.getElementById('cfg-identity-body');
+    if (!body) return;
+    try {
+      var r = await fetch('/api/bot-identity');
+      if (!r.ok) return;
+      var d = await r.json();
+      cfgRenderIdentity(d);
+    } catch(e) { console.warn('cfgFetchIdentity error', e); }
+  }
+
+  function _cfgEsc(s) {
+    return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function cfgRenderIdentity(d) {
+    var body = document.getElementById('cfg-identity-body');
+    if (!body) return;
+    var name = d.bot_instance_id || '';
+    var committed = !!d.committed;
+    if (!committed) {
+      body.innerHTML =
+        '<div class="hl-cfg-manifest-row" style="border-bottom:none;flex-direction:column;align-items:flex-start;gap:10px">' +
+          '<span class="hl-cfg-manifest-lbl" style="color:#ccc">INSTANCE NAME</span>' +
+          '<div style="display:flex;gap:8px;width:100%;align-items:center">' +
+            '<input id="cfg-bot-name-inp" type="text" value="' + _cfgEsc(name) + '" ' +
+              'style="flex:1;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:6px;' +
+              'padding:8px 10px;font-family:JetBrains Mono,monospace;font-size:11px;color:#a855f7;outline:none" ' +
+              'placeholder="e.g. hl-main">' +
+            '<button onclick="cfgSetBotName()" ' +
+              'style="padding:8px 12px;background:#a855f7;border:none;border-radius:6px;' +
+              'font-family:JetBrains Mono,monospace;font-size:9px;font-weight:800;color:#000;' +
+              'cursor:pointer;white-space:nowrap;letter-spacing:0.08em">' +
+              'SET BOT NAME</button>' +
+          '</div>' +
+          '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:#555;line-height:1.6">' +
+            'Auto-derived from Railway env. Set a name to lock this instance and enable cross-process duplicate protection.' +
+          '</div>' +
+        '</div>';
+    } else {
+      body.innerHTML =
+        '<div class="hl-cfg-manifest-row" style="border-bottom:none;flex-direction:column;align-items:flex-start;gap:10px">' +
+          '<div style="display:flex;justify-content:space-between;align-items:center;width:100%">' +
+            '<span class="hl-cfg-manifest-lbl" style="color:#ccc">INSTANCE NAME</span>' +
+            '<span style="font-family:Bebas Neue,sans-serif;font-size:20px;color:#a855f7">' + _cfgEsc(name) + '</span>' +
+          '</div>' +
+          '<button id="cfg-bot-change-btn" onclick="cfgIdentityArm()" ' +
+            'style="width:100%;padding:10px;background:transparent;border:1px solid #a855f7;border-radius:6px;' +
+            'font-family:JetBrains Mono,monospace;font-size:10px;font-weight:700;color:#a855f7;' +
+            'cursor:pointer;letter-spacing:0.08em;transition:all 0.2s">' +
+            'CHANGE BOT NAME</button>' +
+          '<div id="cfg-bot-change-form" style="display:none;flex-direction:column;gap:8px;width:100%">' +
+            '<input id="cfg-bot-name-inp" type="text" value="' + _cfgEsc(name) + '" ' +
+              'style="width:100%;box-sizing:border-box;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:6px;' +
+              'padding:8px 10px;font-family:JetBrains Mono,monospace;font-size:11px;color:#a855f7;outline:none">' +
+            '<button onclick="cfgSetBotName()" ' +
+              'style="width:100%;padding:10px;background:#a855f7;border:none;border-radius:6px;' +
+              'font-family:JetBrains Mono,monospace;font-size:10px;font-weight:800;color:#000;' +
+              'cursor:pointer;letter-spacing:0.08em">SAVE</button>' +
+          '</div>' +
+          '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:#555;line-height:1.6">' +
+            'Committed to Supabase. All processes sharing this Railway service will use this name.' +
+          '</div>' +
+        '</div>';
+    }
+  }
+
+  var _cfgIdentityArmed = false;
+  var _cfgIdentityTimer = null;
+
+  function cfgIdentityArm() {
+    var btn = document.getElementById('cfg-bot-change-btn');
+    if (!btn) return;
+    if (!_cfgIdentityArmed) {
+      _cfgIdentityArmed = true;
+      btn.style.background = '#a855f7';
+      btn.style.color = '#000';
+      btn.textContent = 'TAP TO CONFIRM';
+      _cfgIdentityTimer = setTimeout(function() {
+        _cfgIdentityArmed = false;
+        btn.style.background = 'transparent';
+        btn.style.color = '#a855f7';
+        btn.textContent = 'CHANGE BOT NAME';
+      }, 3000);
+    } else {
+      clearTimeout(_cfgIdentityTimer);
+      _cfgIdentityArmed = false;
+      btn.style.display = 'none';
+      var form = document.getElementById('cfg-bot-change-form');
+      if (form) form.style.display = 'flex';
+    }
+  }
+
+  async function cfgSetBotName() {
+    var inp = document.getElementById('cfg-bot-name-inp');
+    if (!inp) return;
+    var name = inp.value.trim();
+    if (!name) { alert('Bot name cannot be empty'); return; }
+    if (name.indexOf(':') !== -1) { alert('Bot name must not contain ":"'); return; }
+    try {
+      var r = await fetch('/api/bot-identity/set', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name: name }),
+      });
+      var d = await r.json();
+      if (!r.ok) { alert('Failed: ' + (d.detail || r.status)); return; }
+      cfgRenderIdentity(d);
+    } catch(e) { alert('Request failed: ' + e); }
+  }

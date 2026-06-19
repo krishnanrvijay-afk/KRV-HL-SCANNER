@@ -59,6 +59,10 @@ _large_sl_cooldowns: dict[str, float] = {}   # "SYMBOLDIR" -> expiry ts for 90-m
 _peak_shadow: dict = {}   # trade_key -> shadow tracking state (observation only)
 _adverse_shadow: dict = {}  # trade_key -> adverse-cut shadow state (observation only)
 _sign_shadow:   dict = {}  # trade_key -> PnL-sign transition history (observation only)
+
+  # ── Bot identity ──────────────────────────────────────────────────────────────────────────────
+  BOT_INSTANCE_ID: str        = "default"
+  _BOT_IDENTITY_COMMITTED: bool = False
 _prev_session:      str              = ""
 
 # ── Global safety state ────────────────────────────────────────────────────────
@@ -575,7 +579,32 @@ async def _update_paper_trade_close(trade: dict, exit_price: float,
         print(f"[PAPER LOG] update error: {e}")
 
 
-async def _open_trade_log_row(trade: dict):
+async def _resolve_bot_identity(exchange: str) -> None:
+      """Resolve BOT_INSTANCE_ID from Supabase bot_identity table or env-var fallback.
+
+      Called once at startup. Falls back silently if Supabase is unavailable.
+      """
+      global BOT_INSTANCE_ID, _BOT_IDENTITY_COMMITTED
+      sb = _get_supabase()
+      if sb:
+          try:
+              result = sb.table("bot_identity").select("*").eq("exchange", exchange).execute()
+              if result.data:
+                  BOT_INSTANCE_ID = result.data[0]["bot_instance_id"]
+                  _BOT_IDENTITY_COMMITTED = True
+                  print(f"[BOT IDENTITY] Resolved from Supabase: {BOT_INSTANCE_ID} (committed)")
+                  return
+          except Exception as _e:
+              print(f"[BOT IDENTITY] Supabase lookup failed -- using env-var fallback: {_e}")
+      BOT_INSTANCE_ID = (
+          os.environ.get("BOT_INSTANCE_ID")
+          or os.environ.get("RAILWAY_SERVICE_ID", "default")
+      )
+      _BOT_IDENTITY_COMMITTED = False
+      print(f"[BOT IDENTITY] Auto-derived (not committed): {BOT_INSTANCE_ID}")
+
+
+  async def _open_trade_log_row(trade: dict):
     """Insert an entry-analytics snapshot into hl_trade_log at trade-open time.
 
     If any column is missing, run once in Supabase SQL editor:
@@ -645,6 +674,29 @@ async def _do_open_trade(
     if key in app_state.open_trades:
         return None, "already_open"
 
+    lock_key = f"{exchange}:{symbol}:{direction}:{BOT_INSTANCE_ID}"
+    _sb = _get_supabase()
+    if _sb:
+        try:
+            _thirty_ago = (datetime.now(timezone.utc) - timedelta(seconds=30)).isoformat()
+            _sb.table("trade_open_locks").delete().eq("lock_key", lock_key).lt("created_at", _thirty_ago).execute()
+            _sb.table("trade_open_locks").insert({
+                "lock_key":        lock_key,
+                "exchange":        exchange,
+                "symbol":          symbol,
+                "direction":       direction,
+                "bot_instance_id": BOT_INSTANCE_ID,
+            }).execute()
+        except Exception as _lock_e:
+            _msg = (
+                f"\u26a0 DUPLICATE BLOCKED: {symbol} {direction} on {exchange} "
+                f"(bot: {BOT_INSTANCE_ID}) \u2014 another process already opened this signal"
+            )
+            if TELEGRAM_ENABLED:
+                threading.Thread(target=lambda m=_msg: _tg_post(m), daemon=True).start()
+            print(f"[LOCK CONFLICT] {lock_key} -- blocked duplicate open: {_lock_e}")
+            return None, "already_open"
+
     _client = mexc_client if exchange == "MEXC" else hl_client
     sl_price = alert_data.get("sl_price") if alert_data else None
     result   = await _client.open_position(
@@ -696,6 +748,7 @@ async def _do_open_trade(
         "extreme_price": None,
         "adverse_price": None,
         "chg24h":        alert_data.get("chg24h") if alert_data else None,
+        "_lock_key":     lock_key,
     }
 
     app_state.open_trades[key] = trade
@@ -1253,6 +1306,14 @@ def _do_close_trade(key: str, trade: dict, exit_price: float, reason: str):
     asyncio.create_task(_write_peak_shadow_row(key, trade, reason, pnl))
     asyncio.create_task(_write_adverse_shadow_row(key, trade, reason, pnl, r))
     asyncio.create_task(_write_sign_shadow_rows(key, trade, reason, pnl))
+    _lk = trade.get("_lock_key")
+    if _lk:
+        _sb2 = _get_supabase()
+        if _sb2:
+            try:
+                _sb2.table("trade_open_locks").delete().eq("lock_key", _lk).execute()
+            except Exception as _unlock_e:
+                print(f"[LOCK CLEANUP FAILED] {_lk}: {_unlock_e}")
     _save_state()
 
 
@@ -1338,6 +1399,14 @@ def _do_trailblazer_close(key: str, trade: dict, exit_price: float,
     asyncio.create_task(_write_peak_shadow_row(key, trade, "TRAILBLAZER", pnl))
     asyncio.create_task(_write_adverse_shadow_row(key, trade, "TRAILBLAZER", pnl, r))
     asyncio.create_task(_write_sign_shadow_rows(key, trade, "TRAILBLAZER", pnl))
+    _lk = trade.get("_lock_key")
+    if _lk:
+        _sb2 = _get_supabase()
+        if _sb2:
+            try:
+                _sb2.table("trade_open_locks").delete().eq("lock_key", _lk).execute()
+            except Exception as _unlock_e:
+                print(f"[LOCK CLEANUP FAILED] {_lk}: {_unlock_e}")
     _save_state()
 
 
@@ -1586,6 +1655,7 @@ async def lifespan(app: FastAPI):
     mexc_client = MexcClient()
     log_startup_config()
     _load_state()
+    await _resolve_bot_identity("HL")
     print("[SCHEMA] hl_trade_log analytics columns — run once in Supabase SQL editor if any are missing:")
     print("  ALTER TABLE hl_trade_log ADD COLUMN IF NOT EXISTS j15m_entry       float;")
     print("  ALTER TABLE hl_trade_log ADD COLUMN IF NOT EXISTS j1h_entry        float;")
@@ -2146,7 +2216,41 @@ async def post_settings(request: Request):
     return await get_settings()
 
 
-# ── Daily reset ───────────────────────────────────────────────────────────────
+  # ── Bot identity ──────────────────────────────────────────────────────────────────────────────
+
+  @app.get("/api/bot-identity")
+  async def get_bot_identity():
+      """Return current bot identity and whether it has been committed to Supabase."""
+      return {"bot_instance_id": BOT_INSTANCE_ID, "committed": _BOT_IDENTITY_COMMITTED}
+
+
+  @app.post("/api/bot-identity/set")
+  async def set_bot_identity(request: Request):
+      """Commit or update the bot instance name.  No restart required."""
+      global BOT_INSTANCE_ID, _BOT_IDENTITY_COMMITTED
+      body = await request.json()
+      name = (body.get("name") or "").strip()
+      if not name:
+          raise HTTPException(status_code=400, detail="name must be a non-empty string")
+      if ":" in name:
+          raise HTTPException(status_code=400, detail="name must not contain ':' (used as lock key delimiter)")
+      sb = _get_supabase()
+      if sb:
+          try:
+              sb.table("bot_identity").upsert({
+                  "exchange":        "HL",
+                  "bot_instance_id": name,
+                  "set_at":          datetime.now(timezone.utc).isoformat(),
+              }).execute()
+          except Exception as _e:
+              print(f"[BOT IDENTITY] Supabase upsert failed: {_e}")
+      BOT_INSTANCE_ID = name
+      _BOT_IDENTITY_COMMITTED = True
+      print(f"[BOT IDENTITY] Updated to: {name} (committed)")
+      return {"bot_instance_id": BOT_INSTANCE_ID, "committed": _BOT_IDENTITY_COMMITTED}
+
+
+  # ── Daily reset ───────────────────────────────────────────────────────────────
 
 @app.post("/api/reset-day")
 async def reset_day():
