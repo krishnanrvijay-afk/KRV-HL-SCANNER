@@ -1051,7 +1051,7 @@ function buildPosCard(t, prices, pairStates) {
   const pnlTrailStop = trailStop ? dollarAt(trailStop) : 0;
 
   // Subheader
-  const openFmt   = openedAt ? new Date(openedAt*1000).toISOString().replace('T',' ').slice(0,19) : '';
+  const openFmt   = openedAt ? (function(){var _d=new Date(openedAt*1000);var _pt=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(_d);var _v=function(t){return(_pt.find(function(x){return x.type===t;})||{}).value||'';};var _tz=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',timeZoneName:'short'}).formatToParts(_d).find(function(x){return x.type==='timeZoneName';}).value;return _v('year')+'-'+_v('month')+'-'+_v('day')+' '+_v('hour')+':'+_v('minute')+':'+_v('second')+' '+_tz;})() : '';
   const marginFmt = margin >= 1000 ? `$${(margin/1000).toFixed(1)}k` : `$${Math.round(margin)}`;
 
   // Metrics (live from pair state, fallback to trade snapshot)
@@ -2805,7 +2805,7 @@ async function _ovCloseTrade(sym, dir) {
     const gainLeft=Math.min(pEn,p2R).toFixed(1),gainW=Math.abs(p2R-pEn).toFixed(1),tp1SL=Math.min(pTp1,pCur).toFixed(1),tp1SW=Math.abs(pCur-pTp1).toFixed(1);
     const dollarAt=function(tgt){return isLong?(tgt-entry)*size:(entry-tgt)*size;};
     const pnlSl=dollarAt(sl),pnlTp1=dollarAt(tp1),pnlTp2=dollarAt(tp2),pnlTrailStop=trailStop?dollarAt(trailStop):0;
-    const openFmt=openedAt?new Date(openedAt*1000).toISOString().replace('T',' ').slice(0,19):'';
+    const openFmt=openedAt?(function(){var _d=new Date(openedAt*1000);var _pt=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(_d);var _v=function(t){return(_pt.find(function(x){return x.type===t;})||{}).value||'';};var _tz=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',timeZoneName:'short'}).formatToParts(_d).find(function(x){return x.type==='timeZoneName';}).value;return _v('year')+'-'+_v('month')+'-'+_v('day')+' '+_v('hour')+':'+_v('minute')+':'+_v('second')+' '+_tz;})():'';
     const marginFmt=margin>=1000?'$'+(margin/1000).toFixed(1)+'k':'$'+Math.round(margin);
     const narr=ps.symbol?'SCAN  J '+(+j15m).toFixed(1)+'  '+dLbl+' '+(+dPct).toFixed(1)+'%  ADX '+(+adx).toFixed(1)+'  RSI '+(+rsi).toFixed(1)+'  K/D '+(+sK).toFixed(0)+'/'+(+sD).toFixed(0):'SCAN  awaiting next scan';
     const tid='lpc-'+sym+'-'+t.direction;
@@ -3085,19 +3085,19 @@ async function _cfgDoReset(btn) {
     if (!committed) {
       body.innerHTML =
         '<div class="hl-cfg-manifest-row" style="border-bottom:none;flex-direction:column;align-items:flex-start;gap:10px">' +
-          '<span class="hl-cfg-manifest-lbl" style="color:#ccc">INSTANCE NAME</span>' +
+          '<span class="hl-cfg-manifest-lbl" style="color:#fff;font-weight:700">INSTANCE NAME</span>' +
           '<div style="display:flex;gap:8px;width:100%;align-items:center">' +
             '<input id="cfg-bot-name-inp" type="text" value="' + _cfgEsc(name) + '" ' +
               'style="flex:1;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:6px;' +
-              'padding:8px 10px;font-family:JetBrains Mono,monospace;font-size:11px;color:#a855f7;outline:none" ' +
+              'padding:8px 10px;font-family:JetBrains Mono,monospace;font-size:17px;color:#a855f7;outline:none" ' +
               'placeholder="e.g. hl-main">' +
             '<button onclick="cfgSetBotName()" ' +
               'style="padding:8px 12px;background:#a855f7;border:none;border-radius:6px;' +
-              'font-family:JetBrains Mono,monospace;font-size:9px;font-weight:800;color:#000;' +
+              'font-family:JetBrains Mono,monospace;font-size:14px;font-weight:800;color:#000;' +
               'cursor:pointer;white-space:nowrap;letter-spacing:0.08em">' +
               'SET BOT NAME</button>' +
           '</div>' +
-          '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:#555;line-height:1.6">' +
+          '<div style="font-family:JetBrains Mono,monospace;font-size:12px;color:#fff;font-weight:600;line-height:1.6">' +
             'Auto-derived from Railway env. Set a name to lock this instance and enable cross-process duplicate protection.' +
           '</div>' +
         '</div>';
@@ -3105,24 +3105,24 @@ async function _cfgDoReset(btn) {
       body.innerHTML =
         '<div class="hl-cfg-manifest-row" style="border-bottom:none;flex-direction:column;align-items:flex-start;gap:10px">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;width:100%">' +
-            '<span class="hl-cfg-manifest-lbl" style="color:#ccc">INSTANCE NAME</span>' +
-            '<span style="font-family:Bebas Neue,sans-serif;font-size:20px;color:#a855f7">' + _cfgEsc(name) + '</span>' +
+            '<span class="hl-cfg-manifest-lbl" style="color:#fff;font-weight:700">INSTANCE NAME</span>' +
+            '<span style="font-family:Bebas Neue,sans-serif;font-size:30px;color:#a855f7">' + _cfgEsc(name) + '</span>' +
           '</div>' +
           '<button id="cfg-bot-change-btn" onclick="cfgIdentityArm()" ' +
             'style="width:100%;padding:10px;background:transparent;border:1px solid #a855f7;border-radius:6px;' +
-            'font-family:JetBrains Mono,monospace;font-size:10px;font-weight:700;color:#a855f7;' +
+            'font-family:JetBrains Mono,monospace;font-size:15px;font-weight:700;color:#a855f7;' +
             'cursor:pointer;letter-spacing:0.08em;transition:all 0.2s">' +
             'CHANGE BOT NAME</button>' +
           '<div id="cfg-bot-change-form" style="display:none;flex-direction:column;gap:8px;width:100%">' +
             '<input id="cfg-bot-name-inp" type="text" value="' + _cfgEsc(name) + '" ' +
               'style="width:100%;box-sizing:border-box;background:#0d0d0d;border:1px solid #2a2a2a;border-radius:6px;' +
-              'padding:8px 10px;font-family:JetBrains Mono,monospace;font-size:11px;color:#a855f7;outline:none">' +
+              'padding:8px 10px;font-family:JetBrains Mono,monospace;font-size:17px;color:#a855f7;outline:none">' +
             '<button onclick="cfgSetBotName()" ' +
               'style="width:100%;padding:10px;background:#a855f7;border:none;border-radius:6px;' +
-              'font-family:JetBrains Mono,monospace;font-size:10px;font-weight:800;color:#000;' +
+              'font-family:JetBrains Mono,monospace;font-size:15px;font-weight:800;color:#000;' +
               'cursor:pointer;letter-spacing:0.08em">SAVE</button>' +
           '</div>' +
-          '<div style="font-family:JetBrains Mono,monospace;font-size:8px;color:#555;line-height:1.6">' +
+          '<div style="font-family:JetBrains Mono,monospace;font-size:12px;color:#fff;font-weight:600;line-height:1.6">' +
             'Committed to Supabase. All processes sharing this Railway service will use this name.' +
           '</div>' +
         '</div>';
