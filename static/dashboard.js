@@ -876,10 +876,12 @@ function buildAlertCard(a, trades, pairMap) {
 
   //  Buttons 
   const dis      = inTrade ? 'disabled' : '';
+  const hasLiveTrade = key in trades && trades[key].paper === false;
+  const disLive      = hasLiveTrade ? 'disabled' : '';
   const btnsHtml = isStale
     ? `<button class="ac-btn ac-btn-dismiss" onclick="dismissAlert('${sym}','${a.direction}')">DISMISS</button>`
-    : `<button class="ac-btn btn-hl" ${dis} onclick="openTrade('${sym}','${a.direction}','HL',${a.leverage})">OPEN HL</button>
-       <button class="ac-btn ac-btn-live" ${dis} onclick="openLiveOverlay('${sym}','${a.direction}')"><span style=\"display:inline-block;width:7px;height:7px;background:#000;border-radius:50%;margin-right:5px;animation:liveDot 1.2s ease-in-out infinite\"></span>OPEN LIVE</button>
+    : `<button class="ac-btn btn-hl" ${dis} style="${inTrade ? 'opacity:0.4;' : ''}" onclick="openTrade('${sym}','${a.direction}','HL',${a.leverage})">OPEN HL</button>
+       <button class="ac-btn ac-btn-live" ${disLive} style="${hasLiveTrade ? 'opacity:0.4;' : ''}" onclick="openLiveOverlay('${sym}','${a.direction}')"><span style=\"display:inline-block;width:7px;height:7px;background:#000;border-radius:50%;margin-right:5px;animation:liveDot 1.2s ease-in-out infinite\"></span>OPEN LIVE</button>
        <button class="ac-btn ac-btn-dismiss" onclick="dismissAlert('${sym}','${a.direction}')">DISMISS</button>`;
 
   return `<div class="alert-card ${dirClass}" style="${isStale ? 'opacity:0.6;' : ''}">
