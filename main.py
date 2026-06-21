@@ -1854,6 +1854,14 @@ async def _exit_monitor_loop():
         await asyncio.sleep(PRICE_INTERVAL_SECONDS)
 
 
+async def _state_heartbeat_loop():
+    """Saves state every 60 s while any position is open."""
+    while True:
+        await asyncio.sleep(60)
+        if app_state.open_trades:
+            _save_state()
+
+
 # ── Lifespan ──────────────────────────────────────────────────────────────────
 
 @asynccontextmanager
@@ -1889,10 +1897,12 @@ async def lifespan(app: FastAPI):
     scan_task  = asyncio.create_task(_scan_loop())
     price_task = asyncio.create_task(_price_loop())
     exit_task  = asyncio.create_task(_exit_monitor_loop())
+    state_task = asyncio.create_task(_state_heartbeat_loop())
     yield
     scan_task.cancel()
     price_task.cancel()
     exit_task.cancel()
+    state_task.cancel()
     if _digest_task is not None and not _digest_task.done():
         _digest_task.cancel()
     await hl_client.close()
