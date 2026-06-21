@@ -1526,6 +1526,15 @@ async def _exit_monitor_loop():
                                           " elapsed=" + str(round(_ash_ela, 1)) + "m" +
                                           " sl_pct=" + str(round(_sl_pct_a * 100, 1)) + "%" +
                                           " pnl=$" + str(_ash_pnl))
+                                    if TELEGRAM_ENABLED:
+                                        def _adverse_watch_tg(sym=sym, direction=direction, rule=_rname, elapsed=_ash_ela, pct=_sl_pct_a, pnl=_ash_pnl):
+                                            d_lbl = "S" if direction == "SHORT" else "L"
+                                            _tg_post("\U0001F7E7\U0001F7E7\U0001F7E7 ADVERSE WATCH \U0001F7E7\U0001F7E7\U0001F7E7"
+                                                     + "\n<b>" + sym + " " + d_lbl + " \u00B7 Rule " + rule + "</b>"
+                                                     + "\n" + f"{elapsed:.0f}" + "min elapsed \u00B7 " + f"{pct*100:.0f}" + "% to SL"
+                                                     + "\nCurrent: " + ("+" if pnl >= 0 else "-") + "$" + f"{abs(pnl):.2f}"
+                                                     + "\n<i>Observation only \u2014 no action taken</i>")
+                                        threading.Thread(target=_adverse_watch_tg, daemon=True).start()
                     elif key in _adverse_shadow and not _adverse_shadow[key]["ever_recovered"]:
                         _adverse_shadow[key]["ever_recovered"] = True
                 except Exception as _ash_e:
