@@ -119,8 +119,7 @@ async function hlAccFetch() {
     _hlAccFetched = true;
     const ts = document.getElementById('hl-acc-card-ts');
     if (ts) {
-      const d = new Date();
-      ts.textContent = 'FETCHED ' + d.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit', hour12:false });
+      ts.textContent = 'FETCHED ' + _fmtET(Date.now() / 1000, false, true);
     }
     const pill = document.getElementById('hl-acc-pill');
     if (pill) pill.classList.add('fetched');
@@ -187,13 +186,29 @@ function closeMarket() {
   document.getElementById('mkt-popover').classList.remove('open');
 }
 
+//  ET formatter — single source of truth for all absolute time displays
+function _fmtET(epochSeconds, includeDate, includeSeconds) {
+  var _d  = new Date(epochSeconds * 1000);
+  var _pt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/New_York',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false
+  }).formatToParts(_d);
+  var _v  = function(t) { return (_pt.find(function(x){return x.type===t;})||{}).value||''; };
+  var _tz = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', timeZoneName: 'short'
+  }).formatToParts(_d).find(function(x){return x.type==='timeZoneName';}).value;
+  var time = _v('hour')+':'+_v('minute')+(includeSeconds ? ':'+_v('second') : '');
+  return (includeDate ? _v('year')+'-'+_v('month')+'-'+_v('day')+' ' : '')+time+' '+_tz;
+}
+
 //  Scan status text (updated by ticker and by render) 
 function updateScanStatus() {
   const el = document.getElementById('scan-status');
   if (!el) return;
   if (!lastScanAt) { el.innerHTML = 'waiting for scan'; return; }
-  const d = new Date(lastScanAt * 1000);
-  const ts = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const ts = _fmtET(lastScanAt, false, true);
   el.innerHTML = `last scan <span class="ts">${ts}</span>  #${STATE?.scan_count||0}  <span class="cd">next in ${_scanCdSec}s</span>`;
 }
 
@@ -1051,7 +1066,7 @@ function buildPosCard(t, prices, pairStates) {
   const pnlTrailStop = trailStop ? dollarAt(trailStop) : 0;
 
   // Subheader
-  const openFmt   = openedAt ? (function(){var _d=new Date(openedAt*1000);var _pt=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(_d);var _v=function(t){return(_pt.find(function(x){return x.type===t;})||{}).value||'';};var _tz=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',timeZoneName:'short'}).formatToParts(_d).find(function(x){return x.type==='timeZoneName';}).value;return _v('year')+'-'+_v('month')+'-'+_v('day')+' '+_v('hour')+':'+_v('minute')+':'+_v('second')+' '+_tz;})() : '';
+  const openFmt   = openedAt ? _fmtET(openedAt, true, true) : '';
   const marginFmt = margin >= 1000 ? `$${(margin/1000).toFixed(1)}k` : `$${Math.round(margin)}`;
 
   // Metrics (live from pair state, fallback to trade snapshot)
@@ -1601,8 +1616,8 @@ function renderLogTab() {
     const rColor   = (r.r_value||0) >= 0 ? '#555'    : '#ff4444';
     const dur      = r.duration_seconds || 0;
     const durStr   = dur < 3600 ? `${Math.floor(dur/60)}m` : `${Math.floor(dur/3600)}h${Math.floor((dur%3600)/60)}m`;
-    const openTime = r.timestamp_opened ? new Date(r.timestamp_opened*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
-    const closeTime= r.timestamp_closed ? new Date(r.timestamp_closed*1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '';
+    const openTime = r.timestamp_opened ? _fmtET(r.timestamp_opened, false, false) : '';
+    const closeTime= r.timestamp_closed ? _fmtET(r.timestamp_closed, false, false) : '';
     const isLong   = r.direction === 'LONG';
     const _sessC = { ASIA: '#9966ff', EU: '#4488ff', US: '#00ff88', OFF: '#888' };
     const _sCol  = _sessC[r.session_opened] || '#555';
@@ -2805,7 +2820,7 @@ async function _ovCloseTrade(sym, dir) {
     const gainLeft=Math.min(pEn,p2R).toFixed(1),gainW=Math.abs(p2R-pEn).toFixed(1),tp1SL=Math.min(pTp1,pCur).toFixed(1),tp1SW=Math.abs(pCur-pTp1).toFixed(1);
     const dollarAt=function(tgt){return isLong?(tgt-entry)*size:(entry-tgt)*size;};
     const pnlSl=dollarAt(sl),pnlTp1=dollarAt(tp1),pnlTp2=dollarAt(tp2),pnlTrailStop=trailStop?dollarAt(trailStop):0;
-    const openFmt=openedAt?(function(){var _d=new Date(openedAt*1000);var _pt=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}).formatToParts(_d);var _v=function(t){return(_pt.find(function(x){return x.type===t;})||{}).value||'';};var _tz=new Intl.DateTimeFormat('en-US',{timeZone:'America/New_York',timeZoneName:'short'}).formatToParts(_d).find(function(x){return x.type==='timeZoneName';}).value;return _v('year')+'-'+_v('month')+'-'+_v('day')+' '+_v('hour')+':'+_v('minute')+':'+_v('second')+' '+_tz;})():'';
+    const openFmt=openedAt?_fmtET(openedAt,true,true):'';
     const marginFmt=margin>=1000?'$'+(margin/1000).toFixed(1)+'k':'$'+Math.round(margin);
     const narr=ps.symbol?'SCAN  J '+(+j15m).toFixed(1)+'  '+dLbl+' '+(+dPct).toFixed(1)+'%  ADX '+(+adx).toFixed(1)+'  RSI '+(+rsi).toFixed(1)+'  K/D '+(+sK).toFixed(0)+'/'+(+sD).toFixed(0):'SCAN  awaiting next scan';
     const tid='lpc-'+sym+'-'+t.direction;
