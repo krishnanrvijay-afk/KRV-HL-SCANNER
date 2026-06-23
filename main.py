@@ -519,7 +519,7 @@ def _append_trade_log(trade: dict, exit_price: float, reason: str, pnl: float, r
         try:
             open_iso  = datetime.fromtimestamp(opened_at, tz=timezone.utc).isoformat()
             close_iso = datetime.fromtimestamp(now_ts,    tz=timezone.utc).isoformat()
-            sb.table("hl_trade_log").insert({
+            _tl_row = {
                 "pair":             trade["symbol"],
                 "direction":        trade["direction"],
                 "tier":             trade.get("tier"),
@@ -550,7 +550,12 @@ def _append_trade_log(trade: dict, exit_price: float, reason: str, pnl: float, r
                 "adx1h":            trade.get("adx1h"),
                 "mae_r":            _mae_r,
                 "mfe_r":            _mfe_r,
-            }).execute()
+            }
+            if trade.get("vwap_at_entry") is not None:
+                _tl_row["vwap_at_entry"] = trade.get("vwap_at_entry")
+                _tl_row["vwap_pct_diff"] = trade.get("vwap_pct_diff")
+                _tl_row["vwap_position"] = trade.get("vwap_position")
+            sb.table("hl_trade_log").insert(_tl_row).execute()
         except Exception as _e:
             print(f"[PERSIST] hl_trade_log insert error: {_e}")
 
@@ -797,6 +802,9 @@ async def _do_open_trade(
         "stoch_k_fast":      alert_data.get("stoch_k_fast") if alert_data else None,
         "stoch_d_fast":      alert_data.get("stoch_d_fast") if alert_data else None,
         "btc_correlation":   _scanner_mod.BTC_CORRELATION.get(symbol, 0.75),
+        "vwap_at_entry":     alert_data.get("vwap_at_entry") if alert_data else None,
+        "vwap_pct_diff":     alert_data.get("vwap_pct_diff") if alert_data else None,
+        "vwap_position":     alert_data.get("vwap_position") if alert_data else None,
     }
 
     app_state.open_trades[key] = trade
@@ -1389,6 +1397,19 @@ def _do_close_trade(key: str, trade: dict, exit_price: float, reason: str):
     pnl = (exit_price - entry) * remaining if direction == "LONG" \
           else (entry - exit_price) * remaining
     r   = _compute_r(pnl, trade)
+
+    if reason == "ADVERSE_CUT" or (reason == "PEAK_DECAY_20" and pnl <= 0):
+        _now_ac  = datetime.now(timezone.utc)
+        _dir_key = "long" if direction == "LONG" else "short"
+        _scanner_mod._adverse_cluster[_dir_key].append(_now_ac)
+        _scanner_mod._adverse_cluster[_dir_key] = [
+            t for t in _scanner_mod._adverse_cluster[_dir_key]
+            if (_now_ac - t).total_seconds() < 600
+        ]
+        if len(_scanner_mod._adverse_cluster[_dir_key]) >= 3:
+            print(f"[CLUSTER_HALT] {_dir_key.upper()} entries halted"
+                  f" — {len(_scanner_mod._adverse_cluster[_dir_key])} adverse exits"
+                  f" in 10min window")
 
     _append_trade_log(trade, exit_price, reason, pnl, r)
     _update_daily_pnl(pnl)
