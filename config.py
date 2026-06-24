@@ -71,3 +71,23 @@ MIN_SL_PCT: dict = {
     "ZEC":  0.030,
 }
 MIN_SL_PCT_DEFAULT = 0.010
+# Per-pair per-session Sentinel minimum peak thresholds
+# Derived from p25 winner MFE per pair x $10k notional
+# ASIA scaled to 60% -- winner peaks smaller in ASIA session
+# Reviewed and updated first Monday of each month
+SENTINEL_MIN_PEAK_USD: dict = {
+    # (symbol, session): minimum peak USD
+    ("NEAR",  "ASIA"): 7.00,  ("NEAR",  "EU"): 7.00,  ("NEAR",  "US"): 7.00,
+    ("@107",  "ASIA"): 19.00, ("@107",  "EU"): 32.00, ("@107",  "US"): 24.00,
+    ("WIF",   "ASIA"): 17.00, ("WIF",   "EU"): 28.00, ("WIF",   "US"): 21.00,
+    ("AVAX",  "ASIA"): 17.00, ("AVAX",  "EU"): 29.00, ("AVAX",  "US"): 22.00,
+    ("SUI",   "ASIA"): 17.00, ("SUI",   "EU"): 29.00, ("SUI",   "US"): 22.00,
+    ("DOGE",  "ASIA"): 15.00, ("DOGE",  "EU"): 25.00, ("DOGE",  "US"): 19.00,
+    ("SOL",   "ASIA"): 36.00, ("SOL",   "EU"): 60.00, ("SOL",   "US"): 45.00,
+    ("XRP",   "ASIA"): 30.00, ("XRP",   "EU"): 50.00, ("XRP",   "US"): 38.00,
+    ("ETH",   "ASIA"): 19.00, ("ETH",   "EU"): 31.00, ("ETH",   "US"): 23.00,
+    ("BTC",   "ASIA"): 22.00, ("BTC",   "EU"): 36.00, ("BTC",   "US"): 27.00,
+    ("LTC",   "ASIA"): 18.00, ("LTC",   "EU"): 30.00, ("LTC",   "US"): 23.00,
+    ("ADA",   "ASIA"): 18.00, ("ADA",   "EU"): 30.00, ("ADA",   "US"): 23.00,
+}
+SENTINEL_MIN_PEAK_USD_DEFAULT: float = 18.00  # ASIA-safe default
