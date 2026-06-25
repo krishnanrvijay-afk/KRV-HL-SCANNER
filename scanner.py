@@ -553,6 +553,16 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
                         f"ADX {adx1h:.1f} > ADX_FADE_MAX {ADX_FADE_MAX}"))
                     continue
 
+                # -- HL ASIA SHORT weak-trend overbought block
+                if (get_session_name() == "ASIA"
+                        and direction == "SHORT"
+                        and j1h > 80
+                        and 20 <= adx1h <= 30):
+                    asyncio.create_task(_log_gate("HL", symbol, "J1H_ADX_GATE", "SHORT",
+                        f"ASIA SHORT blocked: j1h={j1h:.1f} "
+                        f"adx={adx1h:.1f} weak trend overbought"))
+                    continue
+
                 # Compute SL / TP prices (HC score-10: 2.5R TP1, 3.5R TP2)
                 is_hc = score >= 10
                 if direction == "SHORT":
