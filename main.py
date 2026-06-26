@@ -1642,16 +1642,17 @@ async def _exit_monitor_loop():
                 tp1_hit   = trade.get("tp1_hit", False)
                 is_short  = direction == "SHORT"
 
-                if not current or current <= 0 or not sl_price:
-                    print(f"[EXIT CHECK] {sym} {direction} skipped — "
-                          f"no price ({current}) or no sl ({sl_price})")
+                if not current or current <= 0:
+                    print(f"[EXIT CHECK] {sym} {direction} skipped - "
+                          f"no price ({current})")
                     continue
-
-                # Track extreme price (lowest for SHORT, highest for LONG)
+                # Update excursion tracking regardless of sl_price
                 ep = trade.get("extreme_price") or current
-                trade["extreme_price"] = min(ep, current) if is_short else max(ep, current)
+                trade["extreme_price"] = (min(ep, current) if is_short
+                                          else max(ep, current))
                 ap = trade.get("adverse_price") or current
-                trade["adverse_price"] = max(ap, current) if is_short else min(ap, current)
+                trade["adverse_price"] = (max(ap, current) if is_short
+                                          else min(ap, current))
 
                 # -- Adverse cut: excessive adverse move with no meaningful MFE -------
                 _adv_price = trade.get("adverse_price") or current
@@ -1661,6 +1662,8 @@ async def _exit_monitor_loop():
                 _adv_pnl    = ((_adv_price - _entry) * _size) if not is_short else ((_entry - _adv_price) * _size)
                 _mfe_pnl    = ((_ext_price - _entry) * _size) if not is_short else ((_entry - _ext_price) * _size)
                 _cut_usd    = ADVERSE_CUT_USD.get(sym, ADVERSE_CUT_DEFAULT_USD)
+                _cpnl       = ((_entry - current) * _size if is_short
+                               else (current - _entry) * _size)
                 # -- Dead on arrival: trade never moved >$1 favorably AND PnL at/below zero
                 if _mfe_pnl <= 1.0 and _cpnl <= 0.0:
                     print(f"[DOA_CUT] {sym} {direction} "
@@ -1916,8 +1919,11 @@ async def _exit_monitor_loop():
                 # ── SL breach ──────────────────────────────────────────────────
                 # SHORT: SL triggers when price RISES above sl_price
                 # LONG : SL triggers when price FALLS below sl_price
-                sl_breached = (is_short and current >= sl_price) or \
-                              (not is_short and current <= sl_price)
+                if not sl_price:
+                    sl_breached = False  # no SL set yet - skip breach check
+                else:
+                    sl_breached = (is_short and current >= sl_price) or \
+                                  (not is_short and current <= sl_price)
 
                 if sl_breached:
                     print(f"[EXIT CHECK] {sym} {direction} price={current} "
@@ -1969,7 +1975,7 @@ async def _exit_monitor_loop():
                     if _cpnl < _sh["peak_pnl_usd"] * _decay_threshold:
                         # NOTE: PAPER_MODE-only as of this build. If PAPER_MODE is ever
                         # set to False, this exit MUST also call
-                        # await mexc_client.close_position(sym, direction, trade.get("remaining_size", trade.get("size", 0)))
+                        # await hl_client.close_position(sym, direction, trade.get("remaining_size", trade.get("size", 0)))
                         # BEFORE _do_close_trade below — otherwise the real exchange
                         # position stays open while internal state shows it closed.
                         # The /close_trade endpoint shows the correct pattern.
