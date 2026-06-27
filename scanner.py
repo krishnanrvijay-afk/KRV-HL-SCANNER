@@ -9,7 +9,7 @@ from config import (
     PAIRS, J15M_SHORT_GATE, J15M_LONG_GATE, J1H_SHORT_MIN, J1H_SHORT_MAX, J1H_LONG_MIN,
     RSI15M_SHORT_MIN, RSI15M_LONG_MAX, DEPTH_GATE_PCT, ATR_SL_MULTIPLIER,
     TP1_R, TP2_R, LEVERAGE_HIGH, LEVERAGE_MID, LEVERAGE_LOW,
-    COOLDOWN_SECONDS, ADX_FADE_MAX, ADX_MIN, PAPER_MODE, CONSECUTIVE_LOSS_STOP,
+    ADX_MIN_LONG, ADX_MIN_SHORT, PAPER_MODE, CONSECUTIVE_LOSS_STOP,
     MIN_SL_PCT, MIN_SL_PCT_DEFAULT, MARGIN_PER_TRADE,
 )
 
@@ -39,7 +39,7 @@ async def _log_gate(venue: str, pair: str, gate_type: str, direction: str, reaso
     except Exception:
         pass
 
-# ── Module-level state ────────────────────────────────────────────────────────
+# ââ Module-level state ââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 _last_stoch:  dict[str, tuple] = {}   # keyed symbol -> (stoch_k, stoch_d) from previous scan
 _last_stoch_fast: dict[str, tuple] = {}   # keyed symbol -> (stoch_k_fast, stoch_d_fast) 8,3,3
@@ -48,11 +48,11 @@ _adverse_cooldown_until: dict = {"long": None, "short": None}  # graduated adver
 _btc_flash_block_until: dict = {"long": None}                  # expiry for BTC 1m flash crash LONG block
 _flash_closed: set = set()                                      # trade keys already force-closed this flash event
 _btc_flash_tg_pending = [False]                                 # set True when flash arms; cleared in main.py after TG sent
-_cooldowns:   dict[str, float] = {}   # keyed "BTCSHORT" / "BTCLONG" → expiry ts
+_cooldowns:   dict[str, float] = {}   # keyed "BTCSHORT" / "BTCLONG" â expiry ts
 _scan_count:  int              = 0
 _stale_prices: set[str]        = set()  # symbols with 2 consecutive missing prices
 _stale_counts: dict             = {}     # consecutive no-price count per symbol
-_btc_j1h: float = 50.0   # cached BTC J1H — updated each scan when BTC is processed
+_btc_j1h: float = 50.0   # cached BTC J1H â updated each scan when BTC is processed
 
 BTC_CORRELATION: dict[str, float] = {
     "ETH": 0.94, "SOL": 0.86, "XRP": 0.84, "DOGE": 0.87,
@@ -63,7 +63,7 @@ BTC_CORRELATION: dict[str, float] = {
 }
 
 
-# ── Indicator helpers ─────────────────────────────────────────────────────────
+# ââ Indicator helpers âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 def _compute_kdj(candles: list[dict], period: int = 9) -> tuple[float, float, float]:
     if len(candles) < period:
@@ -227,7 +227,7 @@ def _depth_pcts(book: dict) -> tuple[float, float]:
     return round(bid_vol / total * 100, 1), round(ask_vol / total * 100, 1)
 
 
-# ── Scoring ───────────────────────────────────────────────────────────────────
+# ââ Scoring âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 def _leverage_tier(adx: float) -> tuple[str, int]:
     if adx >= 50:
@@ -242,16 +242,14 @@ def score_bounce_short(j15m, j1h, ask_pct, adx,
                        stoch_k: float = 50.0, stoch_d: float = 50.0,
                        stoch_k_prev: float = 50.0, stoch_d_prev: float = 50.0) -> tuple[int, str, int]:
     tier, lev = _leverage_tier(adx)
-    stoch_gate = stoch_k > 75 and stoch_k < stoch_d and stoch_k_prev >= stoch_d_prev
+    stoch_gate = stoch_k > 75 and stoch_k <= 84 and stoch_k < stoch_d and stoch_k_prev >= stoch_d_prev
     if not (j15m > J15M_SHORT_GATE and j1h > J1H_SHORT_MIN and j1h <= J1H_SHORT_MAX
-            and stoch_gate and ask_pct >= DEPTH_GATE_PCT and adx >= ADX_MIN):
+            and stoch_gate and ask_pct >= DEPTH_GATE_PCT and adx >= ADX_MIN_SHORT):
         return 0, tier, lev
     score = 4
     if j5m  > 80:              score += 2
     if trend == "Strong Bear": score += 2
     if adx  >= 40:             score += 2
-    if score >= 10:
-        lev, tier = min(25, max(lev, 10)), "HIGH_CONVICTION"
     return score, tier, lev
 
 
@@ -262,18 +260,16 @@ def score_bounce_long(j15m, j1h, bid_pct, adx,
     tier, lev = _leverage_tier(adx)
     stoch_gate = stoch_k < 25 and stoch_k > stoch_d and stoch_k_prev <= stoch_d_prev
     if not (j15m < J15M_LONG_GATE and j1h >= J1H_LONG_MIN
-            and stoch_gate and bid_pct >= DEPTH_GATE_PCT and adx >= ADX_MIN):
+            and stoch_gate and bid_pct >= DEPTH_GATE_PCT and adx >= ADX_MIN_LONG):
         return 0, tier, lev
     score = 4
     if j5m  < 20:              score += 2
     if trend == "Strong Bull": score += 2
     if adx  >= 40:             score += 2
-    if score >= 10:
-        lev, tier = min(25, max(lev, 10)), "HIGH_CONVICTION"
     return score, tier, lev
 
 
-# ── Cooldown helpers ──────────────────────────────────────────────────────────
+# ââ Cooldown helpers ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 def set_close_cooldown(symbol: str, direction: str):
     _cooldowns[f"{symbol}{direction}"] = time.time() + COOLDOWN_SECONDS
@@ -368,7 +364,7 @@ def compute_market_health(pair_states: list[dict], recent_trades: list[dict]) ->
     }
 
 
-# ── Main scan ─────────────────────────────────────────────────────────────────
+# ââ Main scan âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 
 async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list[dict]:
     global _scan_count
@@ -378,7 +374,7 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
 
     for symbol in PAIRS:
         try:
-            await asyncio.sleep(0.5)  # rate-limit spacing — 12 pairs × 0.5s = 6s minimum spread
+            await asyncio.sleep(0.5)  # rate-limit spacing â 12 pairs Ã 0.5s = 6s minimum spread
             candles_5m, candles_15m, candles_1h, book, price = await _fetch_pair_data(hl_client, symbol)
 
             if not price or price == 0:
@@ -397,7 +393,7 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
             _stale_counts[symbol] = 0
             _stale_prices.discard(symbol)
 
-            # ── Indicators ────────────────────────────────────────────────────
+            # ââ Indicators ââââââââââââââââââââââââââââââââââââââââââââââââââââ
             _, _, j5m  = _compute_kdj(candles_5m)
             _, _, j15m = _compute_kdj(candles_15m)
             _, _, j1h  = _compute_kdj(candles_1h)
@@ -427,42 +423,39 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
             vol_ma15m  = (sum(c["volume"] for c in candles_15m[-10:]) / min(10, len(candles_15m))
                           if candles_15m else 0)
 
-            # ── SL distance (ATR base, floored by MIN_SL_PCT + session buffer) ───────────────────────────────────────────────────
+            # ââ SL distance (ATR base, floored by MIN_SL_PCT + session buffer) âââââââââââââââââââââââââââââââââââââââââââââââââââ
             _sl_atr      = atr15m * ATR_SL_MULTIPLIER
             _min_sl_pct  = MIN_SL_PCT.get(symbol, MIN_SL_PCT_DEFAULT)
             _sess_buf    = get_session_sl_buffer()
             _min_sl_dist = price * (_min_sl_pct + _sess_buf)
             sl_dist      = max(_sl_atr, _min_sl_dist)
 
-            # ── BTC regime gate ───────────────────────────────────────────────
+            # ââ BTC regime gate âââââââââââââââââââââââââââââââââââââââââââââââ
             _sym_base          = symbol.replace("_USDT", "").replace("USDT", "")
             _pair_corr         = BTC_CORRELATION.get(_sym_base, 0.75)
             _regime_block_short = False
             _regime_block_long  = False
             if _pair_corr >= 0.65:
-                if _btc_j1h < 20:
-                    _regime_block_short = True
-                elif 40 <= _btc_j1h <= 60:
-                    _regime_block_short = True
+                if _btc_j1h >= 60:
                     _regime_block_long  = True
-                elif _btc_j1h > 80:
-                    _regime_block_long  = True
+                if _btc_j1h >= 90:
+                    _regime_block_short = True
 
-            # ── Component A: BTC fast stoch flash detector ─────────────────────
+            # ââ Component A: BTC fast stoch flash detector âââââââââââââââââââââ
             _btc_fast         = _last_stoch_fast.get("BTC", (50.0, 50.0))
             _btc_fk, _btc_fd  = _btc_fast
             _btc_fast_margin  = _btc_fk - _btc_fd
             if _btc_fast_margin < -15:
                 _regime_block_long  = True
-                log.info(f"[FAST_STOCH_BLOCK] BTC fast K-D={_btc_fast_margin:.1f} → LONG entries blocked")
+                log.info(f"[FAST_STOCH_BLOCK] BTC fast K-D={_btc_fast_margin:.1f} â LONG entries blocked")
                 asyncio.create_task(_log_gate("HL", "BTC", "FAST_STOCH_BLOCK", "LONG",
                     f"BTC fast K-D={_btc_fast_margin:.1f}"))
             if _btc_fast_margin > 15:
                 _regime_block_short = True
-                log.info(f"[FAST_STOCH_BLOCK] BTC fast K-D={_btc_fast_margin:.1f} → SHORT entries blocked")
+                log.info(f"[FAST_STOCH_BLOCK] BTC fast K-D={_btc_fast_margin:.1f} â SHORT entries blocked")
                 asyncio.create_task(_log_gate("HL", "BTC", "FAST_STOCH_BLOCK", "SHORT",
                     f"BTC fast K-D={_btc_fast_margin:.1f}"))
-            # ── Component A2: BTC 1m flash crash detector ─────────────────────
+            # ââ Component A2: BTC 1m flash crash detector âââââââââââââââââââââ
             _flash_thresholds = {"ASIA": 0.0030, "EU": 0.0055, "US": 0.0050}
             _cur_session  = get_session_name()
             _flash_thresh = _flash_thresholds.get(_cur_session, 0.0050)
@@ -488,7 +481,7 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
                             f"session={_cur_session} LONGs blocked 5min"))
             except Exception as _fe:
                 log.warning(f"[BTC_FLASH] candle error: {_fe}")
-            # ── Component B: Adverse cluster directional halt ─────────────────────
+            # ââ Component B: Adverse cluster directional halt âââââââââââââââââââââ
             if len(_adverse_cluster.get("long",  [])) >= 3: _regime_block_long  = True
             if len(_adverse_cluster.get("short", [])) >= 3: _regime_block_short = True
             # -- Graduated adverse cooldown check --------------------------------
@@ -503,19 +496,14 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
             if (_btc_flash_block_until.get("long") and
                     _now_utc < _btc_flash_block_until["long"]):
                 _regime_block_long = True
-            # ── Score both directions ─────────────────────────────────────────
+            # ââ Score both directions âââââââââââââââââââââââââââââââââââââââââ
             for direction in ("SHORT", "LONG"):
                 key = f"{symbol}{direction}"
 
-                _cd = get_cooldown_remaining(symbol, direction)
-                if _cd > 0:
-                    asyncio.create_task(_log_gate("HL", symbol, "COOLDOWN", direction,
-                        f"cooldown {_cd:.0f}s remaining"))
-                    continue
 
                 if direction == "SHORT":
                     if _regime_block_short:
-                        log.info(f"[REGIME] {symbol} SHORT blocked — BTC J1H={_btc_j1h:.1f} corr={_pair_corr}")
+                        log.info(f"[REGIME] {symbol} SHORT blocked â BTC J1H={_btc_j1h:.1f} corr={_pair_corr}")
                         continue
                     g_j15m  = j15m > J15M_SHORT_GATE
                     g_j1h   = j1h  > J1H_SHORT_MIN
@@ -532,7 +520,7 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
                                  f"ask={ask_pct:.1f}%(need>={DEPTH_GATE_PCT}%)")
                 else:
                     if _regime_block_long:
-                        log.info(f"[REGIME] {symbol} LONG blocked — BTC J1H={_btc_j1h:.1f} corr={_pair_corr}")
+                        log.info(f"[REGIME] {symbol} LONG blocked â BTC J1H={_btc_j1h:.1f} corr={_pair_corr}")
                         continue
                     g_j15m  = j15m < J15M_LONG_GATE
                     g_j1h   = j1h  >= J1H_LONG_MIN
@@ -548,7 +536,7 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
                                  f"stoch_k={stoch_k:.1f}/stoch_d={stoch_d:.1f}(need<25,k>d) "
                                  f"bid={bid_pct:.1f}%(need>={DEPTH_GATE_PCT}%)")
 
-                # ── GATE3 log — every scan when >= 3 of 4 gates pass ────────────
+                # ââ GATE3 log â every scan when >= 3 of 4 gates pass ââââââââââââ
                 _gate_list  = [g_j15m, g_j1h, g_stoch, g_depth]
                 _gate_count = sum(_gate_list)
                 _blocked    = [n for n, v in zip(["J15M", "J1H", "STOCH", "DEPTH"], _gate_list) if not v]
@@ -563,9 +551,10 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
                 if score >= 4:
                     log.info(f"[SCORE] {symbol} {direction} gates=PASS score={score} {log_gates}")
                 else:
-                    if adx1h < ADX_MIN:
+                    if (direction == "LONG" and adx1h < ADX_MIN_LONG) or \
+                            (direction == "SHORT" and adx1h < ADX_MIN_SHORT):
                         asyncio.create_task(_log_gate("HL", symbol, "ADX_GATE", direction,
-                            f"ADX {adx1h:.1f} < ADX_MIN {ADX_MIN}"))
+                            f"ADX {adx1h:.1f} below min for {direction}"))
                     elif direction == "SHORT" and not (j15m > J15M_SHORT_GATE and j1h > J1H_SHORT_MIN):
                         asyncio.create_task(_log_gate("HL", symbol, "J1H_GATE", direction,
                             f"j1h={j1h:.1f} j15m={j15m:.1f}"))
@@ -577,14 +566,6 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
                             f"stoch_k={stoch_k:.1f} stoch_d={stoch_d:.1f}"))
                     continue
 
-
-                if adx1h > ADX_FADE_MAX:
-                    log.info(f"[SKIP] {symbol} {direction} adx={adx1h:.1f} exceeds fade max {ADX_FADE_MAX} — trend too strong to fade")
-                    asyncio.create_task(_log_gate("HL", symbol, "ADX_FADE", direction,
-                        f"ADX {adx1h:.1f} > ADX_FADE_MAX {ADX_FADE_MAX}"))
-                    continue
-
-                # -- HL ASIA SHORT weak-trend overbought block
                 if (get_session_name() == "ASIA"
                         and direction == "SHORT"
                         and j1h > 80
@@ -670,7 +651,7 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
         except Exception as e:
             log.error(f"[SCAN] {symbol} error: {e}", exc_info=True)
 
-    log.info(f"[SCAN] #{_scan_count} complete — {len(new_alerts)} new alerts")
+    log.info(f"[SCAN] #{_scan_count} complete â {len(new_alerts)} new alerts")
     return new_alerts
 
 
@@ -799,7 +780,6 @@ def log_startup_config():
         f"J1H_SHORT_MIN={J1H_SHORT_MIN} J1H_LONG_MIN={J1H_LONG_MIN} "
         f"RSI_SHORT={RSI15M_SHORT_MIN} RSI_LONG={RSI15M_LONG_MAX} "
         f"DEPTH={DEPTH_GATE_PCT}% ATR_SL={ATR_SL_MULTIPLIER}x "
-        f"ADX_FADE_MAX={ADX_FADE_MAX} "
-        f"COOLDOWN={COOLDOWN_SECONDS//60}min "
+        f"ADX_MIN_LONG={ADX_MIN_LONG} ADX_MIN_SHORT={ADX_MIN_SHORT} "
         f"CIRCUIT_BREAKER={CONSECUTIVE_LOSS_STOP} PAPER={PAPER_MODE}"
     )
