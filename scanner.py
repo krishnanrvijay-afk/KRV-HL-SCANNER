@@ -240,10 +240,9 @@ def _leverage_tier(adx: float) -> tuple[str, int]:
 
 def score_bounce_short(j15m, j1h, ask_pct, adx,
                        j5m: float = 50.0, trend: str = "Neutral",
-                       stoch_k: float = 50.0, stoch_d: float = 50.0,
-                       stoch_k_prev: float = 50.0, stoch_d_prev: float = 50.0) -> tuple[int, str, int]:
+                       stoch_k: float = 50.0, stoch_d: float = 50.0) -> tuple[int, str, int]:
     tier, lev = _leverage_tier(adx)
-    stoch_gate = stoch_k > 75 and stoch_k <= 84 and stoch_k < stoch_d and stoch_k_prev >= stoch_d_prev
+    stoch_gate = stoch_k > 75 and stoch_k <= 84 and stoch_k < stoch_d
     if not (j15m > J15M_SHORT_GATE and j1h > J1H_SHORT_MIN and j1h <= J1H_SHORT_MAX
             and stoch_gate and ask_pct >= DEPTH_GATE_PCT and adx >= ADX_MIN_SHORT):
         return 0, tier, lev
@@ -256,10 +255,9 @@ def score_bounce_short(j15m, j1h, ask_pct, adx,
 
 def score_bounce_long(j15m, j1h, bid_pct, adx,
                       j5m: float = 50.0, trend: str = "Neutral",
-                      stoch_k: float = 50.0, stoch_d: float = 50.0,
-                      stoch_k_prev: float = 50.0, stoch_d_prev: float = 50.0) -> tuple[int, str, int]:
+                      stoch_k: float = 50.0, stoch_d: float = 50.0) -> tuple[int, str, int]:
     tier, lev = _leverage_tier(adx)
-    stoch_gate = stoch_k < 25 and stoch_k > stoch_d and stoch_k_prev <= stoch_d_prev
+    stoch_gate = stoch_k < 25 and stoch_k > stoch_d
     if not (j15m < J15M_LONG_GATE and j1h >= J1H_LONG_MIN
             and stoch_gate and bid_pct >= DEPTH_GATE_PCT and adx >= ADX_MIN_LONG):
         return 0, tier, lev
@@ -513,8 +511,7 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
                     g_depth = ask_pct >= DEPTH_GATE_PCT
                     score, tier, lev = score_bounce_short(
                         j15m, j1h, ask_pct, adx1h, j5m=j5m, trend=trend,
-                        stoch_k=stoch_k_fast, stoch_d=stoch_d_fast,
-                        stoch_k_prev=stoch_k_prev_fast, stoch_d_prev=stoch_d_prev_fast)
+                        stoch_k=stoch_k_fast, stoch_d=stoch_d_fast)
                     log_gates = (f"j15m={j15m:.1f}(need>{J15M_SHORT_GATE}) "
                                  f"j1h={j1h:.1f}(need>{J1H_SHORT_MIN}) "
                                  f"stoch_k={stoch_k:.1f}/stoch_d={stoch_d:.1f}(need>75,k<d) "
@@ -530,8 +527,7 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
                     g_depth = bid_pct >= DEPTH_GATE_PCT
                     score, tier, lev = score_bounce_long(
                         j15m, j1h, bid_pct, adx1h, j5m=j5m, trend=trend,
-                        stoch_k=stoch_k_fast, stoch_d=stoch_d_fast,
-                        stoch_k_prev=stoch_k_prev_fast, stoch_d_prev=stoch_d_prev_fast)
+                        stoch_k=stoch_k_fast, stoch_d=stoch_d_fast)
                     log_gates = (f"j15m={j15m:.1f}(need<{J15M_LONG_GATE}) "
                                  f"j1h={j1h:.1f}(need>={J1H_LONG_MIN}) "
                                  f"stoch_k={stoch_k:.1f}/stoch_d={stoch_d:.1f}(need<25,k>d) "
@@ -689,12 +685,10 @@ async def scan_pair_state(hl_client) -> list[dict]:
 
             short_score, short_tier, short_lev = score_bounce_short(
                 j15m, j1h, ask_pct, adx1h, j5m=j5m, trend=trend,
-                stoch_k=stoch_k_fast, stoch_d=stoch_d_fast,
-                stoch_k_prev=stoch_k_prev_fast, stoch_d_prev=stoch_d_prev_fast)
+                stoch_k=stoch_k_fast, stoch_d=stoch_d_fast)
             long_score,  long_tier,  long_lev  = score_bounce_long(
                 j15m, j1h, bid_pct, adx1h, j5m=j5m, trend=trend,
-                stoch_k=stoch_k_fast, stoch_d=stoch_d_fast,
-                stoch_k_prev=stoch_k_prev_fast, stoch_d_prev=stoch_d_prev_fast)
+                stoch_k=stoch_k_fast, stoch_d=stoch_d_fast)
 
             states.append({
                 "symbol":      symbol,
