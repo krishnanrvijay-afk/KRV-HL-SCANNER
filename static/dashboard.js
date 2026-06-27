@@ -1109,7 +1109,7 @@ function buildPosCard(t, prices, pairStates) {
       <span style="color:#ffaa00;font-size:13px;line-height:1"></span>
       <span class="pcv2-sig">Bounce</span>
       <span style="font-size:11px;font-weight:700;color:${dirCol}">${cond}</span>
-      ${score ? `<span class="pcv2-sc">${score}pts</span>` : ''}
+      ${score >= 4 ? `<span class="pcv2-sc" title="${score}pts" style="letter-spacing:2px;font-size:14px;color:${score>=10?'#f59e0b':score>=8?'#22c55e':score>=6?'#a855f7':'#94a3b8'}">${'●'.repeat(Math.min(Math.floor((score-2)/2),4))}${'○'.repeat(4-Math.min(Math.floor((score-2)/2),4))}</span>` : ''}
     </div>
     <span class="pcv2-timer" id="${tid}">00:00:00</span>
   </div>
@@ -2607,7 +2607,7 @@ async function _ovCloseTrade(sym, dir) {
     const rows = [
       ['ADX 1H',  (ad.adx1h  || 0).toFixed(1), (pairState.adx1h  || 0).toFixed(1)],
       ['J 15M',   (ad.j15m   || 0).toFixed(1), (pairState.j15m   || 0).toFixed(1)],
-      ['J 1H',    (ad.j1h    || 0).toFixed(1), (pairState.j15m   || 0).toFixed(1)],
+      ['J 1H',    (ad.j1h    || 0).toFixed(1), (pairState.j1h    || 0).toFixed(1)],
       ['STOCH K', (ad.stoch_k|| 0).toFixed(1), (pairState.stoch_k|| 0).toFixed(1)],
       ['STOCH D', (ad.stoch_d|| 0).toFixed(1), (pairState.stoch_d|| 0).toFixed(1)],
     ];
@@ -2787,7 +2787,7 @@ async function _ovCloseTrade(sym, dir) {
       '<span class="pcv2-dir" style="color:'+dirCol+';border-color:'+dirCol+'">'+t.direction+'</span>' +
       '<span style="background:rgba(168,85,247,0.12);border:1px solid rgba(168,85,247,0.35);border-radius:4px;padding:1px 5px;font-family:JetBrains Mono,monospace;font-size:9px;font-weight:700;color:'+exchCol+'">'+exch+'</span>' +
       '<span class="lpc-live-badge"><span class="lpc-live-dot"></span>LIVE</span>' +
-      (score?'<span class="pcv2-sc">'+score+'pts</span>':'')+
+      (score>=4?'<span class="pcv2-sc" title="'+score+'pts" style="letter-spacing:2px;font-size:14px;color:'+(score>=10?'#f59e0b':score>=8?'#22c55e':score>=6?'#a855f7':'#94a3b8')+'">'+'●'.repeat(Math.min(Math.floor((score-2)/2),4))+'○'.repeat(4-Math.min(Math.floor((score-2)/2),4))+'</span>':'')+
       '</div><span class="pcv2-timer" id="'+tid+'">00:00:00</span></div>' +
       '<div class="pcv2-sub" style="padding:0 14px 8px">'+lev+'x  '+marginFmt+'  '+openFmt+(t.session?'  <span style="color:#aaa;font-size:10px;letter-spacing:1px">'+t.session+'</span>':'')+'</div>' +
       '<div class="pcv2-live" style="padding:0 14px 8px"><span class="pcv2-price">'+fmtPrice(current)+'</span><span style="font-family:JetBrains Mono,monospace;font-size:12px;font-weight:700;color:'+dltCol+'">'+dltStr+'</span><span class="pcv2-pnl" style="color:'+pnlCol+';margin-left:auto">'+(pnl>=0?'+':'')+'$'+pnl.toFixed(2)+'</span><span class="pcv2-r" style="color:'+rCol+'">'+(r>=0?'+':'')+''+r.toFixed(2)+'R</span></div>' +
@@ -2936,21 +2936,58 @@ async function cfgFetch() {
     var r = await fetch('/api/settings');
     if (!r.ok) return;
     var d = await r.json();
-    document.getElementById('cfg-paper').checked    = !!d.paper_mode;
-    document.getElementById('cfg-tg').checked       = !!d.telegram_enabled;
-    document.getElementById('cfg-cooldown').value   = d.cooldown_seconds ?? 1800;
-    document.getElementById('cfg-depth').value      = d.depth_gate_pct ?? 55;
-    document.getElementById('cfg-adx').value        = d.adx_fade_max ?? 60;
-    document.getElementById('cfg-margin').value     = d.margin_per_trade ?? 2000;
-    document.getElementById('cfg-loss-limit').value = Math.abs(d.daily_loss_limit ?? 800);
-    document.getElementById('cfg-circuit').value    = d.consecutive_loss_stop ?? 3;
-    document.getElementById('cfg-j15m-os').value    = d.j15m_short_gate ?? 80;
-    document.getElementById('cfg-j15m-ob').value    = d.j15m_long_gate ?? 20;
-    document.getElementById('cfg-j1h-os').value     = d.j1h_short_min ?? 60;
+    document.getElementById(
+      'cfg-paper').checked =
+      !!d.paper_mode;
+    document.getElementById(
+      'cfg-tg').checked =
+      !!d.telegram_enabled;
+    document.getElementById(
+      'cfg-depth').value =
+      d.depth_gate_pct ?? 55;
+    document.getElementById(
+      'cfg-adx-min').value =
+      d.adx_min_long ?? 20;
+    document.getElementById(
+      'cfg-j15m-os').value =
+      d.j15m_short_gate ?? 80;
+    document.getElementById(
+      'cfg-j15m-ob').value =
+      d.j15m_long_gate ?? 20;
+    document.getElementById(
+      'cfg-j1h-os').value =
+      d.j1h_short_min ?? 60;
+    document.getElementById(
+      'cfg-j1h-os-max').value =
+      d.j1h_short_max ?? 89;
+    document.getElementById(
+      'cfg-j1h-ob-max').value =
+      d.j1h_long_max ?? 59;
+    document.getElementById(
+      'cfg-atr-sl').value =
+      d.atr_sl_multiplier ?? 1.0;
+    document.getElementById(
+      'cfg-tp1-pct').value =
+      Math.round(
+        (d.tp1_close_pct ?? 0.7) * 100);
+    document.getElementById(
+      'cfg-tp2-r').value =
+      d.tp2_r ?? 1.2;
+    document.getElementById(
+      'cfg-margin').value =
+      d.margin_per_trade ?? 2000;
+    document.getElementById(
+      'cfg-loss-limit').value =
+      Math.abs(d.daily_loss_limit ?? 800);
+    document.getElementById(
+      'cfg-circuit').value =
+      d.consecutive_loss_stop ?? 3;
     cfgUpdatePaperLabel();
     cfgUpdateTgLabel();
     cfgFetchIdentity();
-  } catch(e) { console.warn('cfgFetch error', e); }
+  } catch(e) {
+    console.warn('cfgFetch error', e);
+  }
 }
 
 function cfgUpdatePaperLabel() {
@@ -2968,28 +3005,76 @@ function cfgUpdateTgLabel() {
 }
 
 async function cfgSave() {
-  var btn  = document.getElementById('cfg-save-btn');
+  var btn = document.getElementById(
+    'cfg-save-btn');
   var body = {
-    paper_mode:            document.getElementById('cfg-paper').checked,
-    telegram_enabled:      document.getElementById('cfg-tg').checked,
-    cooldown_seconds:      Number(document.getElementById('cfg-cooldown').value),
-    depth_gate_pct:        Number(document.getElementById('cfg-depth').value),
-    adx_fade_max:          Number(document.getElementById('cfg-adx').value),
-    margin_per_trade:      Number(document.getElementById('cfg-margin').value),
-    daily_loss_limit:      -Math.abs(Number(document.getElementById('cfg-loss-limit').value)),
-    consecutive_loss_stop: Number(document.getElementById('cfg-circuit').value),
-    j15m_short_gate:       Number(document.getElementById('cfg-j15m-os').value),
-    j15m_long_gate:        Number(document.getElementById('cfg-j15m-ob').value),
-    j1h_short_min:         Number(document.getElementById('cfg-j1h-os').value),
+    paper_mode:
+      document.getElementById(
+      'cfg-paper').checked,
+    telegram_enabled:
+      document.getElementById(
+      'cfg-tg').checked,
+    depth_gate_pct: Number(
+      document.getElementById(
+      'cfg-depth').value),
+    adx_min_long: Number(
+      document.getElementById(
+      'cfg-adx-min').value),
+    j15m_short_gate: Number(
+      document.getElementById(
+      'cfg-j15m-os').value),
+    j15m_long_gate: Number(
+      document.getElementById(
+      'cfg-j15m-ob').value),
+    j1h_short_min: Number(
+      document.getElementById(
+      'cfg-j1h-os').value),
+    j1h_short_max: Number(
+      document.getElementById(
+      'cfg-j1h-os-max').value),
+    j1h_long_max: Number(
+      document.getElementById(
+      'cfg-j1h-ob-max').value),
+    atr_sl_multiplier: Number(
+      document.getElementById(
+      'cfg-atr-sl').value),
+    tp1_close_pct:
+      Number(document.getElementById(
+      'cfg-tp1-pct').value) / 100,
+    tp2_r: Number(
+      document.getElementById(
+      'cfg-tp2-r').value),
+    margin_per_trade: Number(
+      document.getElementById(
+      'cfg-margin').value),
+    daily_loss_limit: -Math.abs(Number(
+      document.getElementById(
+      'cfg-loss-limit').value)),
+    consecutive_loss_stop: Number(
+      document.getElementById(
+      'cfg-circuit').value),
   };
   try {
-    var r = await fetch('/api/settings', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(body) });
-    if (!r.ok) { alert('Save failed'); return; }
+    var r = await fetch('/api/settings',
+      { method: 'POST',
+        headers: {
+          'Content-Type':
+          'application/json'},
+        body: JSON.stringify(body) });
+    if (!r.ok) {
+      alert('Save failed: ' + r.status);
+      return;
+    }
     var orig = btn.textContent;
-    btn.textContent = 'SAVED';
+    btn.textContent = 'SAVED ✓';
     btn.style.background = '#22c55e';
-    setTimeout(function() { btn.textContent = orig; btn.style.background = ''; }, 1500);
-  } catch(e) { alert('Request failed'); }
+    setTimeout(function() {
+      btn.textContent = orig;
+      btn.style.background = '';
+    }, 1500);
+  } catch(e) {
+    alert('Request failed: ' + e);
+  }
 }
 
 var _cfgResetArmed = false;
