@@ -2993,6 +2993,12 @@ async function cfgFetch() {
       'cfg-j1h-ob-max').value =
       d.j1h_long_max ?? 59;
     document.getElementById(
+      'cfg-btc-j1h-long').value =
+      d.btc_j1h_long_max ?? 70;
+    document.getElementById(
+      'cfg-btc-j1h-short').value =
+      d.btc_j1h_short_max ?? 90;
+    document.getElementById(
       'cfg-atr-sl').value =
       d.atr_sl_multiplier ?? 1.0;
     document.getElementById(
@@ -3064,6 +3070,12 @@ async function cfgSave() {
     j1h_long_max: Number(
       document.getElementById(
       'cfg-j1h-ob-max').value),
+    btc_j1h_long_max: Number(
+      document.getElementById(
+      'cfg-btc-j1h-long').value),
+    btc_j1h_short_max: Number(
+      document.getElementById(
+      'cfg-btc-j1h-short').value),
     atr_sl_multiplier: Number(
       document.getElementById(
       'cfg-atr-sl').value),
