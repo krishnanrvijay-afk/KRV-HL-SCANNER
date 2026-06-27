@@ -71,26 +71,49 @@ MIN_SL_PCT: dict = {
     "ZEC":  0.030,
 }
 MIN_SL_PCT_DEFAULT = 0.010
-# Per-pair per-session Sentinel minimum peak thresholds
-# Derived from p25 winner MFE per pair x $10k notional
+# Per-pair per-session Sentinel minimum peak thresholds (as fraction of notional)
+# Derived from p25 winner MFE per pair x $10k notional / $10k
 # ASIA scaled to 60% -- winner peaks smaller in ASIA session
 # Reviewed and updated first Monday of each month
-SENTINEL_MIN_PEAK_USD: dict = {
-    # (symbol, session): minimum peak USD
-    ("NEAR",  "ASIA"): 7.00,  ("NEAR",  "EU"): 7.00,  ("NEAR",  "US"): 7.00,
-    ("@107",  "ASIA"): 19.00, ("@107",  "EU"): 32.00, ("@107",  "US"): 24.00,
-    ("WIF",   "ASIA"): 17.00, ("WIF",   "EU"): 28.00, ("WIF",   "US"): 21.00,
-    ("AVAX",  "ASIA"): 17.00, ("AVAX",  "EU"): 29.00, ("AVAX",  "US"): 22.00,
-    ("SUI",   "ASIA"): 17.00, ("SUI",   "EU"): 29.00, ("SUI",   "US"): 22.00,
-    ("DOGE",  "ASIA"): 15.00, ("DOGE",  "EU"): 25.00, ("DOGE",  "US"): 19.00,
-    ("SOL",   "ASIA"): 36.00, ("SOL",   "EU"): 60.00, ("SOL",   "US"): 45.00,
-    ("XRP",   "ASIA"): 30.00, ("XRP",   "EU"): 50.00, ("XRP",   "US"): 38.00,
-    ("ETH",   "ASIA"): 19.00, ("ETH",   "EU"): 31.00, ("ETH",   "US"): 23.00,
-    ("BTC",   "ASIA"): 22.00, ("BTC",   "EU"): 36.00, ("BTC",   "US"): 27.00,
-    ("LTC",   "ASIA"): 18.00, ("LTC",   "EU"): 30.00, ("LTC",   "US"): 23.00,
-    ("ADA",   "ASIA"): 18.00, ("ADA",   "EU"): 30.00, ("ADA",   "US"): 23.00,
+SENTINEL_MIN_PEAK_PCT: dict = {
+    ("NEAR",  "ASIA"): 0.0007,
+    ("NEAR",  "EU"):   0.0007,
+    ("NEAR",  "US"):   0.0007,
+    ("@107",  "ASIA"): 0.0019,
+    ("@107",  "EU"):   0.0032,
+    ("@107",  "US"):   0.0024,
+    ("WIF",   "ASIA"): 0.0017,
+    ("WIF",   "EU"):   0.0028,
+    ("WIF",   "US"):   0.0021,
+    ("AVAX",  "ASIA"): 0.0017,
+    ("AVAX",  "EU"):   0.0029,
+    ("AVAX",  "US"):   0.0022,
+    ("SUI",   "ASIA"): 0.0017,
+    ("SUI",   "EU"):   0.0029,
+    ("SUI",   "US"):   0.0022,
+    ("DOGE",  "ASIA"): 0.0015,
+    ("DOGE",  "EU"):   0.0025,
+    ("DOGE",  "US"):   0.0019,
+    ("SOL",   "ASIA"): 0.0036,
+    ("SOL",   "EU"):   0.0060,
+    ("SOL",   "US"):   0.0045,
+    ("XRP",   "ASIA"): 0.0030,
+    ("XRP",   "EU"):   0.0050,
+    ("XRP",   "US"):   0.0038,
+    ("ETH",   "ASIA"): 0.0019,
+    ("ETH",   "EU"):   0.0031,
+    ("ETH",   "US"):   0.0023,
+    ("BTC",   "ASIA"): 0.0022,
+    ("BTC",   "EU"):   0.0036,
+    ("BTC",   "US"):   0.0027,
+    ("LTC",   "ASIA"): 0.0018,
+    ("LTC",   "EU"):   0.0030,
+    ("LTC",   "US"):   0.0023,
+    ("ADA",   "ASIA"): 0.0018,
+    ("ADA",   "EU"):   0.0030,
+    ("ADA",   "US"):   0.0023,
 }
-SENTINEL_MIN_PEAK_USD_DEFAULT: float = 18.00  # ASIA-safe default
+SENTINEL_MIN_PEAK_PCT_DEFAULT: float = 0.0018
 
 KILL_COOLDOWN_SECONDS: int = 1800
 # Post-KILL cooldown -- blocks re-entry
