@@ -460,6 +460,9 @@ def _load_state():
         if data.get("kill_cooldown_seconds") is not None:
             _scanner_mod.KILL_COOLDOWN_SECONDS = int(
                 data["kill_cooldown_seconds"])
+        if data.get("kill_grace_seconds") is not None:
+            _scanner_mod.KILL_GRACE_SECONDS = int(
+                data["kill_grace_seconds"])
         print(f"[RESTORE] settings restored "
               f"from Supabase")
 
@@ -1768,7 +1771,9 @@ async def _exit_monitor_loop():
                 # KILL â 60s grace then zero tolerance
                 _elapsed = time.time() - trade.get(
                     "opened_at", time.time())
-                if _elapsed >= 60 and _cpnl <= 0:
+                if _elapsed >= \
+                    _scanner_mod.KILL_GRACE_SECONDS \
+                    and _cpnl <= 0:
                     _do_close_trade(
                         key, trade, current, "KILL")
                     _scanner_mod.set_close_cooldown(
@@ -2728,6 +2733,8 @@ async def get_settings():
             CONSECUTIVE_LOSS_STOP,
         "kill_cooldown_seconds":
             _scanner_mod.KILL_COOLDOWN_SECONDS,
+        "kill_grace_seconds":
+            _scanner_mod.KILL_GRACE_SECONDS,
     }
 
 
@@ -2787,6 +2794,9 @@ async def post_settings(request: Request):
     if "kill_cooldown_seconds" in body:
         _scanner_mod.KILL_COOLDOWN_SECONDS = int(
             body["kill_cooldown_seconds"])
+    if "kill_grace_seconds" in body:
+        _scanner_mod.KILL_GRACE_SECONDS = int(
+            body["kill_grace_seconds"])
 
     # Persist ALL settings to Supabase
     # NOTE: columns require migration if not yet in schema.
@@ -2824,6 +2834,8 @@ async def post_settings(request: Request):
                     CONSECUTIVE_LOSS_STOP,
                 "kill_cooldown_seconds":
                     _scanner_mod.KILL_COOLDOWN_SECONDS,
+                "kill_grace_seconds":
+                    _scanner_mod.KILL_GRACE_SECONDS,
             }
             _settings_payload["id"] = 1
             _sb.table("hl_scanner_state")\
