@@ -113,6 +113,7 @@ class AppState:
         self.scan_snapshots:       dict              = {}  # symbol -> last 3 scan snapshots
         self.market_health:        dict              = {}
         self.price_stale:          dict[str, bool]   = {}  # symbols with stale price feed
+        self.price_updated_at:      dict[str, float]  = {}  # symbol -> unix timestamp of last successful price write
 
     @property
     def slots_used(self) -> int:
@@ -1214,6 +1215,7 @@ async def _price_loop():
                 for sym in PAIRS:
                     if sym in all_prices:
                         app_state.prices[sym] = all_prices[sym]
+                        app_state.price_updated_at[sym] = time.time()
 
             # Fetch 24h changes every 5 price ticks (~40s) to avoid extra rate pressure
             _chg_tick += 1
@@ -1748,10 +1750,32 @@ async def _exit_monitor_loop():
                 tp1_hit   = trade.get("tp1_hit", False)
                 is_short  = direction == "SHORT"
 
+                _px_age = (
+                    time.time() -
+                    app_state.price_updated_at.get(sym, 0)
+                )
                 if not current or current <= 0:
                     print(f"[EXIT CHECK] {sym} {direction} skipped - "
                           f"no price ({current})")
                     continue
+                if _px_age > 90:
+                    print(f"[STALE PRICE] {sym} {direction} price age="
+                          f"{_px_age:.0f}s — attempting direct refetch")
+                    _fresh_px = None
+                    try:
+                        _all = await hl_client.get_all_prices()
+                        _fresh_px = _all.get(sym)
+                    except Exception as _refetch_e:
+                        print(f"[STALE PRICE] {sym} refetch failed: {_refetch_e!r}")
+                    if _fresh_px and _fresh_px > 0:
+                        app_state.prices[sym] = float(_fresh_px)
+                        app_state.price_updated_at[sym] = time.time()
+                        current = float(_fresh_px)
+                        print(f"[STALE PRICE] {sym} refetch succeeded: {current}")
+                    else:
+                        print(f"[STALE PRICE] {sym} refetch FAILED — price still stale, "
+                              f"exit checks proceeding with last-known price as fallback "
+                              f"rather than skipping entirely")
                 # Update excursion tracking regardless of sl_price
                 ep = trade.get("extreme_price") or current
                 trade["extreme_price"] = (min(ep, current) if is_short
@@ -2235,6 +2259,18 @@ async def _state_heartbeat_loop():
 
 # Ã¢ÂÂÃ¢ÂÂ Lifespan Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 
+async def _supervised(coro_fn, name: str):
+    """Runs coro_fn() forever. If it ever exits (crash or otherwise),
+    logs loudly and relaunches after a short delay, indefinitely."""
+    while True:
+        try:
+            await coro_fn()
+        except Exception as e:
+            print(f"[WATCHDOG] {name} task died: {e!r} — respawning in 2s")
+        else:
+            print(f"[WATCHDOG] {name} task exited cleanly (unexpected) — respawning in 2s")
+        await asyncio.sleep(2)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global hl_client, mexc_client
@@ -2265,10 +2301,10 @@ async def lifespan(app: FastAPI):
     else:
         print("[MODE] LIVE trading Ã¢ÂÂ AUTO-ENTRY ACTIVE. All signals will open live positions automatically. Confirm this is intentional.")
 
-    scan_task  = asyncio.create_task(_scan_loop())
-    price_task = asyncio.create_task(_price_loop())
-    exit_task  = asyncio.create_task(_exit_monitor_loop())
-    state_task = asyncio.create_task(_state_heartbeat_loop())
+    scan_task  = asyncio.create_task(_supervised(_scan_loop,            "scan_loop"))
+    price_task = asyncio.create_task(_supervised(_price_loop,           "price_loop"))
+    exit_task  = asyncio.create_task(_supervised(_exit_monitor_loop,    "exit_monitor_loop"))
+    state_task = asyncio.create_task(_supervised(_state_heartbeat_loop, "state_heartbeat_loop"))
     yield
     scan_task.cancel()
     price_task.cancel()
