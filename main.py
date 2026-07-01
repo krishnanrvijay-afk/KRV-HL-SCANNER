@@ -642,7 +642,8 @@ def _append_trade_log(trade: dict, exit_price: float, reason: str, pnl: float, r
 
 async def _save_paper_trade(trade: dict, alert: dict):
     """Insert a row into bounce_paper_trades when a paper trade opens."""
-    if not PAPER_MODE or not supabase:
+    _sb = _get_supabase()
+    if not PAPER_MODE or not _sb:
         return
     try:
         row = {
@@ -673,7 +674,7 @@ async def _save_paper_trade(trade: dict, alert: dict):
             "status":        "OPEN",
         }
         await asyncio.to_thread(
-            lambda: supabase.table("bounce_paper_trades").insert(row).execute()
+            lambda: _sb.table("bounce_paper_trades").insert(row).execute()
         )
     except Exception as e:
         print(f"[PAPER LOG] insert error: {e}")
@@ -682,13 +683,14 @@ async def _save_paper_trade(trade: dict, alert: dict):
 async def _update_paper_trade_close(trade: dict, exit_price: float,
                                     reason: str, pnl: float):
     """Update the bounce_paper_trades row when a paper trade closes."""
-    if not PAPER_MODE or not supabase:
+    _sb = _get_supabase()
+    if not PAPER_MODE or not _sb:
         return
     try:
         opened_at = trade.get("opened_at", int(time.time()))
         duration  = round((int(time.time()) - opened_at) / 60, 1)
         await asyncio.to_thread(
-            lambda: supabase.table("bounce_paper_trades")
+            lambda: _sb.table("bounce_paper_trades")
                     .update({
                         "close_price":      exit_price,
                         "close_reason":     reason,
