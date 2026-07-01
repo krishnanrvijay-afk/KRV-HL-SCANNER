@@ -963,7 +963,9 @@ def _tg_post(msg: str) -> None:
         except Exception as _e:
             print(f"[TG] send error: {_e}")
 
-    full_msg = "Ã°ÂÂÂ£ HL BOUNCE\n" + msg
+    full_msg = (
+        "\U0001F7E3  HL BOUNCE\n"
+        + msg)
     def _worker() -> None:
         try:
             _send(full_msg, "HTML")
@@ -1634,9 +1636,18 @@ def _do_partial_close_tp1(key: str, trade: dict, exit_price: float):
     # Update trade in-place Ã¢ÂÂ keep 30% runner open for Trailblazer
     trade["remaining_size"]   = rem_size
     trade["tp1_hit"]          = True
+    _cpnl_tp1 = (
+        (exit_price - entry)
+        * rem_size
+        if direction == "LONG"
+        else
+        (entry - exit_price)
+        * rem_size)
     _peak_shadow.setdefault(key, {}).update({
         "runner_peak_pnl": 0.0,
         "runner_armed":    True,
+        "peak_pnl_usd":
+            max(0.0, _cpnl_tp1),
     })
     trade["extreme_price"]    = exit_price
     trade["trail_best_price"] = exit_price
