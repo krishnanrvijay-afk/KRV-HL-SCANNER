@@ -23,7 +23,6 @@ def proj_pnl(signal_price, close, direction):
 async def main():
     sb = create_client(SUPABASE_URL, SUPABASE_KEY)
     client = HLClient()
-    await client.init()
 
     # Fetch all J1H_DISCARDED from alert_log
     # for HL venue today
