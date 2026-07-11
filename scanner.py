@@ -431,9 +431,9 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
                 continue
 
             # ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Indicators ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
-            _, _, j5m  = _compute_kdj(candles_5m)
-            _, _, j15m = _compute_kdj(candles_15m)
-            _, _, j1h  = _compute_kdj(candles_1h)
+            _, _, j5m  = _compute_kdj(candles_5m[:-1])
+            _, _, j15m = _compute_kdj(candles_15m[:-1])
+            _, _, j1h  = _compute_kdj(candles_1h[:-1])
             _j1h_prev  = _j1h_history.get(symbol)
             _j1h_history[symbol] = j1h
             rsi15m     = _compute_rsi(candles_15m)
@@ -798,9 +798,9 @@ async def scan_pair_state(hl_client) -> list[dict]:
                 states.append({"symbol": symbol, "price": 0})
                 continue
 
-            _, _, j5m  = _compute_kdj(candles_5m)
-            _, _, j15m = _compute_kdj(candles_15m)
-            _, _, j1h  = _compute_kdj(candles_1h)
+            _, _, j5m  = _compute_kdj(candles_5m[:-1])
+            _, _, j15m = _compute_kdj(candles_15m[:-1])
+            _, _, j1h  = _compute_kdj(candles_1h[:-1])
             _j1h_prev  = _j1h_history.get(symbol)
             _j1h_history[symbol] = j1h
             rsi15m     = _compute_rsi(candles_15m)
