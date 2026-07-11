@@ -250,9 +250,9 @@ def score_bounce_short(j15m, j1h, ask_pct, adx,
                        j1h_prev: float = None) -> tuple[int, str, int]:
     tier, lev = _leverage_tier(adx)
     stoch_gate = (j5m > 80 and j15m > 80)
-    if not (j15m > J15M_SHORT_GATE and j1h > J1H_SHORT_MIN and j1h <= J1H_SHORT_MAX
+    if not (j15m > J15M_SHORT_GATE
             and stoch_gate
-            and (j1h_prev is None or j1h < j1h_prev)):
+            and (j1h_prev is None or j1h <= j1h_prev)):
         return 0, tier, lev
     score = 4
     if j5m  > 80:              score += 2
@@ -263,12 +263,13 @@ def score_bounce_short(j15m, j1h, ask_pct, adx,
 
 def score_bounce_long(j15m, j1h, bid_pct, adx,
                       j5m: float = 50.0, trend: str = "Neutral",
-                      stoch_k: float = 50.0, stoch_d: float = 50.0) -> tuple[int, str, int]:
+                      stoch_k: float = 50.0, stoch_d: float = 50.0,
+                      j1h_prev: float = None) -> tuple[int, str, int]:
     tier, lev = _leverage_tier(adx)
-    stoch_gate = (j5m < 20 and j15m < 20)
-    if not (j15m < J15M_LONG_GATE and j1h >= J1H_LONG_MIN
-            and j1h < J1H_LONG_MAX
-            and stoch_gate):
+    stoch_gate = (j5m < 10 and j15m < 20)
+    if not (j15m < J15M_LONG_GATE
+            and stoch_gate
+            and (j1h_prev is None or j1h >= j1h_prev)):
         return 0, tier, lev
     score = 4
     if j5m  < 20:              score += 2
@@ -601,7 +602,8 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
                         continue
                     score, tier, lev = score_bounce_long(
                         j15m, j1h, bid_pct, adx1h, j5m=j5m, trend=trend,
-                        stoch_k=stoch_k_fast, stoch_d=stoch_d_fast)
+                        stoch_k=stoch_k_fast, stoch_d=stoch_d_fast,
+                        j1h_prev=_j1h_prev)
                     log_gates = (f"j15m={j15m:.1f}(need<{J15M_LONG_GATE}) "
                                  f"j1h={j1h:.1f}(need>={J1H_LONG_MIN}) "
                                  f"stoch_k={stoch_k:.1f}/stoch_d={stoch_d:.1f}(need<25,k>d) "
@@ -635,15 +637,6 @@ async def run_full_scan(hl_client, market_health: Optional[dict] = None) -> list
                     else:
                         asyncio.create_task(_log_gate("HL", symbol, "STOCH_BLOCK", direction,
                             f"stoch_k={stoch_k:.1f} stoch_d={stoch_d:.1f}"))
-                    continue
-
-                if (get_session_name() == "ASIA"
-                        and direction == "SHORT"
-                        and j1h > 80
-                        and 20 <= adx1h <= 30):
-                    asyncio.create_task(_log_gate("HL", symbol, "J1H_ADX_GATE", "SHORT",
-                        f"ASIA SHORT blocked: j1h={j1h:.1f} "
-                        f"adx={adx1h:.1f} weak trend overbought"))
                     continue
 
                 # Compute SL / TP prices (HC score-10: 2.5R TP1, 3.5R TP2)
