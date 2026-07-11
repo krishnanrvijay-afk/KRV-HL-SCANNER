@@ -2068,23 +2068,6 @@ async def _exit_monitor_loop():
                             "SL_PROXIMITY")
                         continue
 
-                # -- HP_TIME_EXIT: HIGH_PROB trades open >= 30 min with PnL
-                # still <= 0 get closed. Placed before KILL in the
-                # exit stack.
-                if trade.get("tier") == "HIGH_PROB":
-                    _hp_age = time.time() - trade.get(
-                        "opened_at", time.time())
-                    if _hp_age >= 1800 and _cpnl <= 0:
-                        print(
-                            f"[HP_TIME_EXIT] {sym} {direction}"
-                            f" age={_hp_age:.0f}s"
-                            f" cpnl={_cpnl:.2f}"
-                            f" — exiting")
-                        _do_close_trade(
-                            key, trade,
-                            current,
-                            "HP_TIME_EXIT")
-                        continue
 
                 _elapsed = time.time() - trade.get(
                     "opened_at", time.time())
@@ -2113,26 +2096,6 @@ async def _exit_monitor_loop():
                         _session_halted.add(_skey)
                         print(f"[SESSION HALT] {sym} {direction} — 2 adverse exits (KILL) in {get_session_name()} session. Halted for remainder of session.")
                     continue
-                # -- ANCHOR time exit: 90 minutes max duration
-                _anchor_pairs = {
-                    "BTC", "ETH", "SOL",
-                    "BTC_USDT", "ETH_USDT", "SOL_USDT"
-                }
-                _trade_tier = trade.get("tier", "REGULAR")
-                if (sym in _anchor_pairs and
-                        _trade_tier != "HIGH_PROB"):
-                    _open_ts = trade.get("opened_at")
-                    if _open_ts:
-                        _elapsed = time.time() - _open_ts
-                        if _elapsed >= 5400:
-                            print(f"[ANCHOR_TIME_EXIT] {sym} "
-                                  f"{direction} "
-                                  f"elapsed={_elapsed:.0f}s "
-                                  f"cpnl={_cpnl:.2f} -- "
-                                  f"90min exceeded, exiting")
-                            _do_close_trade(key, trade,
-                                            current, "ANCHOR_TIME_EXIT")
-                            continue
 
                 # -- Peak PnL protection shadow (observation only, no exit logic) ----
                 try:
