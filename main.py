@@ -2937,6 +2937,12 @@ async def get_state():
     _state["regime_block_long"]  = False
     _state["regime_block_short"] = False
     _state["pair_cooldowns"]     = _scanner_mod.get_all_cooldowns()
+    try:
+        _fh_sb = _get_supabase()
+        _fh_r  = _fh_sb.table("hl_scanner_state").select("fleet_halt").eq("id", 1).execute() if _fh_sb else None
+        _state["fleet_halt"] = bool(_fh_r.data[0].get("fleet_halt", False)) if _fh_r and _fh_r.data else False
+    except Exception:
+        _state["fleet_halt"] = False
     return _state
 
 
