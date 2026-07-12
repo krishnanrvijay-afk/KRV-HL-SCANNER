@@ -26,6 +26,8 @@ LIVE_MANUAL_ENTRY_ONLY = True
 
 J15M_SHORT_GATE  = 80
 J15M_LONG_GATE   = 20
+J15M_LONG_FLOOR     = -10   # Block LONGs in free-fall (j15m < -10 = still crashing, not bouncing)
+J15M_SHORT_CEILING  = 115   # Block SHORTs at extreme overbought (j15m > 115 = squeeze risk)
 J1H_SHORT_MIN    = 30   # enforced hard gate: blocks SHORTs where 1H is in deep oversold (< 30 = recovering market)
 J1H_SHORT_MAX    = 85   # Real trading ceiling — data: SHORT J1H 90-100 65.5% WR -$1,513
 J1H_LONG_MIN     = 0    # Bounds validator — guards negative J1H calculation edge cases. Not a trading gate.
@@ -68,6 +70,10 @@ BLOCKED_PAIR_SESSIONS: dict = {
     # WIF_USDT MEXC LONG ASIA is
     # profitable -- HL specific block
     ("WIF",  "LONG",  "ASIA"): True,
+    # NEW -- data: AVAX SHORT ASIA: 4 trades 0% WR -$75 (3L exits into macro uptrend)
+    ("AVAX", "SHORT", "ASIA"): True,
+    # NEW -- data: SUI SHORT ASIA: 3 trades 0% WR -$165 (03:55-03:56 back-to-back 3L)
+    ("SUI",  "SHORT", "ASIA"): True,
 }
 
 PLACE_EXCHANGE_SL      = True
