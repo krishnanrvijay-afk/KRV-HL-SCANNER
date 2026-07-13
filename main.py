@@ -62,6 +62,7 @@ _session_sl_counts: dict[str, int]   = {}    # "SYMBOL_DIRECTION_SESSION" -> SL 
 _session_halted:    set[str]         = set() # "SYMBOL_DIRECTION_SESSION" halted for session
 _pending_alerts:    dict[str, dict]  = {}    # f"{symbol}_{direction}" -> alert pending price confirmation
 _large_sl_cooldowns: dict[str, float] = {}   # "SYMBOLDIR" -> expiry ts for 90-min cooldowns
+_3hlh_cooldowns:     dict[str, float] = {}   # "SYM_DIR" -> expiry ts; 30-min re-entry block after 3H_LOWER_HIGH
 _peak_shadow: dict = {}   # trade_key -> shadow tracking state (observation only)
 _sentinel_sweep: list = []   # deferred protective exits (PEAK_DECAY_20 / RUNNER_DECAY_10) Ã¢ÂÂ flushed once per scan cycle
 _adverse_shadow: dict = {}  # trade_key -> adverse-cut shadow state (observation only)
@@ -1276,7 +1277,14 @@ async def _scan_loop():
                 # Session halt gate
                 _sg = f"{sym}_{dir_}_{get_session_name()}"
                 if _sg in _session_halted:
-                    print(f"[GATE] SESSION HALT Ã¢ÂÂ {sym} {dir_} halted for {get_session_name()} session (2 SL hits)")
+                    print(f"[GATE] SESSION HALT — {sym} {dir_} halted for {get_session_name()} session (2 SL hits)")
+                    continue
+
+                # 3H_LOWER_HIGH re-entry gate — 30 min after structural exit, same pair+direction
+                _3hlh_k = f"{sym}_{dir_}"
+                if _3hlh_k in _3hlh_cooldowns and time.time() < _3hlh_cooldowns[_3hlh_k]:
+                    _3hlh_rem = int((_3hlh_cooldowns[_3hlh_k] - time.time()) / 60)
+                    print(f"[GATE] 3H_LH_COOLDOWN — {sym} {dir_} {_3hlh_rem}m remaining after structural exit")
                     continue
 
                 # Update alerts panel
@@ -2498,6 +2506,7 @@ async def _exit_monitor_loop():
                                 set_close_cooldown(
                                     sym, direction,
                                     seconds=3600)
+                                _3hlh_cooldowns[f"{sym}_{direction}"] = time.time() + 1800
                                 # Per-pair direction session adverse-exit count
                                 _skey = f"{sym}_{direction}_{get_session_name()}"
                                 _session_sl_counts[_skey] = _session_sl_counts.get(_skey, 0) + 1
