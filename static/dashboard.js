@@ -2205,7 +2205,8 @@ async function _ovFetch(sym, isFirst) {
   function _ovDepthHtml(d, dir) {
     const isL     = dir !== 'SHORT';
     const v       = isL ? (d.bid_pct || 0) : (d.ask_pct || 0);
-    const pass    = v >= 55;
+    const depG    = (d.thresholds && d.thresholds.depth_gate) || 55;
+    const pass    = v >= depG;
     const label   = isL ? 'bid' : 'ask';
     const zoneCol = isL ? 'rgba(0,255,106,0.2)' : 'rgba(255,61,61,0.2)';
     const dotCol  = pass ? (isL ? '#00e676' : '#ff5252') : '#888';
@@ -2214,9 +2215,9 @@ async function _ovFetch(sym, isFirst) {
     const txtCol  = pass ? '#00e676' : '#ff5252';
     const body    = `
       <div style="position:relative;height:28px;margin:6px 0 0">
-        <div style="position:absolute;left:0;width:55%;top:50%;transform:translateY(-50%);height:10px;background:#222;border-radius:1px 0 0 1px;pointer-events:none"></div>
-        <div style="position:absolute;left:55%;width:45%;top:50%;transform:translateY(-50%);height:10px;background:${zoneCol};border-radius:0 1px 1px 0;pointer-events:none"></div>
-        <div style="position:absolute;left:55%;top:50%;transform:translate(-50%,-50%);width:2px;height:10px;background:#ffffff;z-index:3;pointer-events:none"></div>
+        <div style="position:absolute;left:0;width:${depG}%;top:50%;transform:translateY(-50%);height:10px;background:#222;border-radius:1px 0 0 1px;pointer-events:none"></div>
+        <div style="position:absolute;left:${depG}%;width:${100-depG}%;top:50%;transform:translateY(-50%);height:10px;background:${zoneCol};border-radius:0 1px 1px 0;pointer-events:none"></div>
+        <div style="position:absolute;left:${depG}%;top:50%;transform:translate(-50%,-50%);width:2px;height:10px;background:#ffffff;z-index:3;pointer-events:none"></div>
         <div id="pov-depth-dot" style="position:absolute;top:50%;transform:translate(-50%,-50%);left:${dLeft}%;width:12px;height:12px;border-radius:50%;background:${dotCol};${dotGlow}display:flex;align-items:center;justify-content:center;z-index:2">
           <span style="font-size:7px;font-weight:700;color:#000;font-family:'JetBrains Mono',monospace;line-height:1">${v.toFixed(0)}</span>
         </div>
@@ -2224,7 +2225,7 @@ async function _ovFetch(sym, isFirst) {
       <div style="display:flex;justify-content:space-between;font-size:8px;color:#2a2a2a;font-family:'JetBrains Mono',monospace;margin:2px 0 4px">
         <span>0</span><span>25</span><span>50</span><span>75</span><span>100</span>
       </div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:${txtCol}">55% ${label} depth needed, currently <span id="pov-depth-val" style="color:${txtCol};font-weight:700">${v.toFixed(0)}%</span></div>`;
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:${txtCol}">${depG}% ${label} depth needed, currently <span id="pov-depth-val" style="color:${txtCol};font-weight:700">${v.toFixed(0)}%</span></div>`;
     return _ovGateRowHtml('depth', 'BID/ASK DEPTH', _ovPassIcon(pass), body);
   }
 
