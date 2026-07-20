@@ -2183,7 +2183,10 @@ async function _ovFetch(sym, isFirst) {
   function _ovJ1hHtml(d, dir) {
     const isL    = dir !== 'SHORT';
     const v      = d.j1h || 0;
-    const pass   = isL ? (v >= 0 && v < 59) : (v > 60 && v < 85);
+    const j1hLM  = (d.thresholds && d.thresholds.j1h_long_max)  || 59;
+    const j1hSMin = (d.thresholds && d.thresholds.j1h_short_min) || 30;
+    const j1hSM  = (d.thresholds && d.thresholds.j1h_short_max) || 85;
+    const pass   = isL ? (v >= 0 && v < j1hLM) : (v > j1hSMin && v < j1hSM);
     const inZone = v <= 20 || v >= 80;
     const jCol   = inZone ? (v <= 20 ? '#00e676' : '#ff3d3d') : '#888';
     const jGlow  = inZone ? `box-shadow:0 0 6px ${jCol};` : '';
@@ -2201,7 +2204,7 @@ async function _ovFetch(sym, isFirst) {
       <div style="display:flex;justify-content:space-between;font-size:8px;color:#2a2a2a;font-family:'JetBrains Mono',monospace;margin:2px 0 4px">
         <span>0</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100</span>
       </div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:${txtCol}">needs ${isL ? '&lt;59' : '&gt;60 &amp;&amp; &lt;85'} for ${isL ? 'LONG' : 'SHORT'}, currently <span id="pov-j1h-val" style="color:${txtCol};font-weight:700">${v.toFixed(0)}</span></div>`;
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:${txtCol}">needs ${isL ? '&lt;'+j1hLM : '&gt;'+j1hSMin+'&amp;&amp;&lt;'+j1hSM} for ${isL ? 'LONG' : 'SHORT'}, currently <span id="pov-j1h-val" style="color:${txtCol};font-weight:700">${v.toFixed(0)}</span></div>`;
     return _ovGateRowHtml('j1h', 'J 1H', _ovPassIcon(pass), body);
   }
 
